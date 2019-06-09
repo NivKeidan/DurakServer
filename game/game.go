@@ -76,7 +76,7 @@ func (this *Game) Attack(player *Player, card *Card) error {
 func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Card) error {
 
 	if this.defendingPlayer != player {
-		return errors.New("wrong player defending")
+		return fmt.Errorf("%s is not defending now", player.Name)
 	}
 
 	// Remove card from player
@@ -104,14 +104,11 @@ func (this *Game) MoveToBita() error {
 	if !this.board.AreAllCardsDefended() {
 		return errors.New("some cards are un defended")
 	}
-	err := this.finalizeTurn(true)
-	if err != nil {
-		return err
-	}
+	this.finalizeTurn(true)
 	return nil
 }
 
-func (this *Game) finalizeTurn(wasDefendedSuccessfully bool) error {
+func (this *Game) finalizeTurn(wasDefendedSuccessfully bool) {
 
 	// Removes cards from board, fills up players' hands
 
@@ -124,21 +121,13 @@ func (this *Game) finalizeTurn(wasDefendedSuccessfully bool) error {
 	if !this.IsGameOver() {
 		this.setUpNextTurn(wasDefendedSuccessfully)
 	}
-
-	return nil
 }
 
-func (this *Game) HandlePlayerTakesCard() error {
+func (this *Game) HandlePlayerTakesCard() {
 
 	cards := this.board.GetAllCards()
 	this.defendingPlayer.TakeCards(cards...)
-	err := this.finalizeTurn(false)
-
-	if err != nil {
-		return err
-	}
-	return nil
-
+	this.finalizeTurn(false)
 }
 
 func (this *Game) IsGameOver() bool {
@@ -305,7 +294,7 @@ func (this *Game) removePlayersThatFinished() {
 
 func (this *Game) getPreviousPlayer(player *Player) *Player {
 	p := player
-	for i := 0; i < this.numOfPlayers; i++ {
+	for p.NextPlayer != player {
 		p = p.NextPlayer
 	}
 	return p

@@ -116,7 +116,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 	var reqBodyObject attackObject
 	err := json.NewDecoder(r.Body).Decode(&reqBodyObject)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), 400)
 		return
 	}
 
@@ -194,7 +194,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	var reqBodyObject defenseObject
 	err := json.NewDecoder(r.Body).Decode(&reqBodyObject)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), 400)
 		return
 	}
 
@@ -271,12 +271,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 	// TODO Add more validations
 
 	// Perform action
-	err := currentGame.HandlePlayerTakesCard()
-
-	if err != nil {
-		http.Error(w, err.Error(), 400)
-		return
-	}
+	currentGame.HandlePlayerTakesCard()
 
 	type takeCardsResponse struct {
 		PlayerCards          map[string][]*game.Card `json:"playerCards"`
