@@ -83,7 +83,6 @@ func (this *Board) DefendCard(attackingCard *Card, defendingCard *Card, kozerKin
 	// Validates attacking card is on board
 	// Validates defending card can defend the attacking card
 
-
 	for _, cardOnBoard := range this.cardsOnBoard {
 		if cardOnBoard.attackingCard.Kind == attackingCard.Kind &&
 			cardOnBoard.attackingCard.Value == attackingCard.Value {

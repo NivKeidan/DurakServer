@@ -46,10 +46,10 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 
 	// Create objects
 
-	players = append(players, "1")
-	players = append(players, "2")
-	players = append(players, "3")
-	players = append(players, "4")
+	players = append(players, "Niv")
+	players = append(players, "Asaf")
+	players = append(players, "Vala")
+	players = append(players, "Roee")
 
 	newGame, err := game.NewGame(players...)
 
@@ -300,7 +300,16 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 
 	if resp.GameOver {
 		resp.IsDraw =  currentGame.IsDraw()
-		resp.LosingPlayerName = currentGame.GetLosingPlayer().Name
+		if !resp.IsDraw {
+			losingPlayer, err := currentGame.GetLosingPlayer()
+
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			resp.LosingPlayerName = losingPlayer.Name
+		}
+
 	} else {
 		resp.IsDraw = false
 		resp.LosingPlayerName = ""
@@ -331,7 +340,6 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method != "POST" {
 		http.Error(w, "Method not allowed", 405)
 	}
-
 	// Validations
 	//userName := r.Header.Get(USER_HEADER)
 
@@ -364,7 +372,14 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	}
 	if resp.GameOver {
 		resp.IsDraw =  currentGame.IsDraw()
-		resp.LosingPlayerName = currentGame.GetLosingPlayer().Name
+		if !resp.IsDraw {
+			losingPlayer, err := currentGame.GetLosingPlayer()
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			resp.LosingPlayerName = losingPlayer.Name
+		}
 	} else {
 		resp.IsDraw = false
 		resp.LosingPlayerName = ""
@@ -403,5 +418,3 @@ func getPlayerCardsMap() map[string][]*game.Card {
 	return playerCards
 
 }
-
-

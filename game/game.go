@@ -80,7 +80,7 @@ func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Car
 	}
 
 	// Remove card from player
-	defendingCard, err = player.GetCard(defendingCard)
+	defendingCard, err := player.GetCard(defendingCard)
 
 	if err != nil {
 		return err
@@ -170,13 +170,18 @@ func (this *Game) GetNumOfCardsLeftInDeck() int {
 	return this.deck.GetNumOfCardsLeft()
 }
 
-func (this *Game) GetLosingPlayer() *Player {
+func (this *Game) GetLosingPlayer() (*Player, error) {
+	if !this.IsGameOver() {
+		return nil, errors.New("game is not over")
+	} else if this.IsDraw() {
+		return nil, errors.New("draw, no losing player")
+	}
 	for _, p := range this.players {
 		if p.GetNumOfCardsInHand() != 0 {
-			return p
+			return p, nil
 		}
 	}
-	return nil
+	return nil, errors.New("all players have no cards")
 }
 
 func (this *Game) GetStartingPlayer() *Player {
@@ -286,14 +291,16 @@ func (this *Game) setUpNextTurn(wasLastTurnDefended bool) {
 func (this *Game) removePlayersThatFinished() {
 
 	currentPlayer := this.defendingPlayer
+	playersRemoved := 0
 	for i := 0; i < this.numOfPlayers; i++ {
 		if currentPlayer.GetNumOfCardsInHand() == 0 {
-			this.numOfPlayers--
+			playersRemoved++
 			previousPlayer := this.getPreviousPlayer(currentPlayer)
 			previousPlayer.NextPlayer = currentPlayer.NextPlayer
 		}
 		currentPlayer = currentPlayer.NextPlayer
 	}
+	this.numOfPlayers = this.numOfPlayers - playersRemoved
 }
 
 func (this *Game) getPreviousPlayer(player *Player) *Player {
