@@ -1,0 +1,305 @@
+package game
+
+import (
+	"errors"
+	"fmt"
+)
+
+const NUM_OF_STARTING_PLAYERS = 4
+const CARDS_PER_PLAYER = 6
+const MAX_CARDS_PER_ATTACK = 6
+
+type Game struct {
+	board           *Board
+	deck            *Deck
+	players         []*Player
+	startingPlayer  *Player
+	defendingPlayer *Player
+	KozerCard       *Card
+	numOfPlayers	int
+}
+
+// Server API
+
+func NewGame(names ...string) (*Game, error) {
+	// Create new deck
+	deck, err := NewDeck()
+	if err != nil { return nil, err}
+	deck.Shuffle()
+
+	// Create players
+	players := make([]*Player, 0)
+	var lastPlayer *Player
+	for _, name := range names {
+		player := NewPlayer(name)
+		players = append(players, player)
+		if lastPlayer != nil {
+			lastPlayer.NextPlayer = player
+		}
+		lastPlayer = player
+	}
+	lastPlayer.NextPlayer = players[0]
+
+	// Prepare game and cards
+	game := Game{board: NewBoard(), deck: deck, players: players}
+	game.dealCards()
+	game.startGame()
+	game.chooseKozer()
+
+	return &game, nil
+}
+
+func (this *Game) Attack(player *Player, card *Card) error {
+
+	if !this.canPlayerAttackNow(player) {
+		return fmt.Errorf("%s can not add attack now", player.Name)
+	}
+
+	if this.board.isCardLimitReached(len(this.defendingPlayer.cards)) {
+		return errors.New("card limit reached")
+	}
+
+	// Remove card from player
+	card, err := player.GetCard(card)
+	if err != nil {return err}
+
+	// Add to board
+	err = this.board.AddAttackingCard(card)
+	if err != nil {
+		player.TakeCards(card)  // Return card to player
+		return err
+	}
+	return nil
+
+}
+
+func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Card) error {
+
+	if this.defendingPlayer != player {
+		return errors.New("wrong player defending")
+	}
+
+	// Remove card from player
+	defendingCard, err = player.GetCard(defendingCard)
+
+	if err != nil {
+		return err
+	}
+
+	// Add card to board
+	err = this.board.DefendCard(attackingCard, defendingCard, &this.KozerCard.Kind)
+
+	if err != nil {
+		player.TakeCards(defendingCard)  // Return card to player
+		return err
+	}
+	return nil
+}
+
+func (this *Game) MoveToBita() error {
+	if this.board.isEmpty() {
+		return errors.New("board is empty")
+	}
+
+	if !this.board.AreAllCardsDefended() {
+		return errors.New("some cards are un defended")
+	}
+	err := this.finalizeTurn(true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (this *Game) finalizeTurn(wasDefendedSuccessfully bool) error {
+
+	// Removes cards from board, fills up players' hands
+
+	this.board.EmptyBoard()
+	this.fillUpCards()
+	if this.deck.GetNumOfCardsLeft() == 0 {
+		this.removePlayersThatFinished()
+	}
+
+	if !this.IsGameOver() {
+		this.setUpNextTurn(wasDefendedSuccessfully)
+	}
+
+	return nil
+}
+
+func (this *Game) HandlePlayerTakesCard() error {
+
+	cards := this.board.GetAllCards()
+	this.defendingPlayer.TakeCards(cards...)
+	err := this.finalizeTurn(false)
+
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (this *Game) IsGameOver() bool {
+	return this.numOfPlayers < 2
+}
+
+func (this *Game) IsDraw() bool {
+	return this.numOfPlayers == 0
+}
+
+func (this *Game) GetPlayerByName(name string) (*Player, error) {
+	for _, player := range this.players {
+		if player.Name == name {
+			return player, nil
+		}
+	}
+	return nil, fmt.Errorf("no such player exists: %s", name)
+}
+
+func (this *Game) NumOfCardsLeftInDeck() int {
+	return this.deck.GetNumOfCardsLeft()
+}
+
+func (this *Game) GetCardsOnBoard() []*CardOnBoard {
+	return this.board.GetAllCardsOnBoard()
+}
+
+func (this *Game) GetNumOfCardsLeftInDeck() int {
+	return this.deck.GetNumOfCardsLeft()
+}
+
+func (this *Game) GetLosingPlayer() *Player {
+	for _, p := range this.players {
+		if p.GetNumOfCardsInHand() != 0 {
+			return p
+		}
+	}
+	return nil
+}
+
+func (this *Game) GetStartingPlayer() *Player {
+	return this.startingPlayer
+}
+
+func (this *Game) GetDefendingPlayer() *Player {
+	return this.defendingPlayer
+}
+
+// Internal methods
+
+func (this *Game) dealCards() {
+	for i := 1; i <= CARDS_PER_PLAYER; i++ {
+		for _, player := range this.players {
+			player.TakeCards(this.deck.GetNextCard())
+		}
+	}
+}
+
+func (this *Game) chooseKozer() {
+	lastCardInDeck := this.deck.GetLastCard()
+	this.KozerCard = lastCardInDeck
+}
+
+func (this *Game) startGame() {
+	this.startingPlayer = this.getStartingPlayer()
+	this.defendingPlayer = this.startingPlayer.NextPlayer
+	this.numOfPlayers = NUM_OF_STARTING_PLAYERS
+}
+
+func (this *Game) getStartingPlayer() *Player {
+	// TODO Check lowest kozer
+	// TODO Add attack last durak
+	return this.players[0]
+}
+
+func (this *Game) canPlayerAttackNow(player *Player) bool {
+	// Checks if a player has the right to attack with a card
+
+	if this.board.isEmpty() {
+		return this.startingPlayer == player
+	} else {
+		return true
+	}
+}
+
+func (this *Game) fillUpCards() {
+
+	// Check if there is a deck
+	numOfCardsInDeck := this.deck.GetNumOfCardsLeft()
+	if numOfCardsInDeck == 0 {
+		return
+	}
+
+	playerFillingUpLast := this.getPlayerFillingUpLast()
+	playerFillingUp := this.getPlayerFillingUpFirst()
+	playerFilledUpCounter := 0
+
+	for playerFilledUpCounter < this.numOfPlayers {
+		if playerFilledUpCounter != this.numOfPlayers - 1 {
+			if playerFillingUp == playerFillingUpLast {
+				playerFillingUp = playerFillingUp.NextPlayer
+			} else {
+				this.fillUpCardsForPlayer(playerFillingUp)
+				playerFillingUp = playerFillingUp.NextPlayer
+				playerFilledUpCounter = playerFilledUpCounter + 1
+			}
+		} else {
+			this.fillUpCardsForPlayer(playerFillingUpLast)
+			break
+		}
+	}
+
+}
+
+func (this *Game) getPlayerFillingUpLast() *Player {
+	return this.defendingPlayer
+}
+
+func (this *Game) getPlayerFillingUpFirst() *Player {
+	return this.startingPlayer
+}
+
+func (this *Game) fillUpCardsForPlayer(player *Player) {
+
+	for CARDS_PER_PLAYER - player.GetNumOfCardsInHand() > 0 {
+		if this.deck.GetNumOfCardsLeft() == 0 {
+			return
+		}
+		newCard := this.deck.GetNextCard()
+		player.TakeCards(newCard)
+	}
+}
+
+func (this *Game) setUpNextTurn(wasLastTurnDefended bool) {
+
+	if wasLastTurnDefended && this.defendingPlayer.GetNumOfCardsInHand() > 0 {
+			this.startingPlayer = this.defendingPlayer
+	} else {
+		this.startingPlayer = this.defendingPlayer.NextPlayer
+	}
+
+	this.defendingPlayer = this.startingPlayer.NextPlayer
+}
+
+func (this *Game) removePlayersThatFinished() {
+
+	currentPlayer := this.defendingPlayer
+	for i := 0; i < this.numOfPlayers; i++ {
+		if currentPlayer.GetNumOfCardsInHand() == 0 {
+			this.numOfPlayers--
+			previousPlayer := this.getPreviousPlayer(currentPlayer)
+			previousPlayer.NextPlayer = currentPlayer.NextPlayer
+		}
+		currentPlayer = currentPlayer.NextPlayer
+	}
+}
+
+func (this *Game) getPreviousPlayer(player *Player) *Player {
+	p := player
+	for i := 0; i < this.numOfPlayers; i++ {
+		p = p.NextPlayer
+	}
+	return p
+}
