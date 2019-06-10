@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-const NUM_OF_STARTING_PLAYERS = 4
 const CARDS_PER_PLAYER = 6
 const MAX_CARDS_PER_ATTACK = 6
 
@@ -41,7 +40,7 @@ func NewGame(names ...string) (*Game, error) {
 	lastPlayer.NextPlayer = players[0]
 
 	// Prepare game and cards
-	game := Game{board: NewBoard(), deck: deck, players: players}
+	game := Game{board: NewBoard(), deck: deck, players: players, numOfPlayers: len(names)}
 	game.dealCards()
 	game.startGame()
 	game.chooseKozer()
@@ -199,7 +198,6 @@ func (this *Game) chooseKozer() {
 func (this *Game) startGame() {
 	this.startingPlayer = this.getStartingPlayer()
 	this.defendingPlayer = this.startingPlayer.NextPlayer
-	this.numOfPlayers = NUM_OF_STARTING_PLAYERS
 }
 
 func (this *Game) getStartingPlayer() *Player {

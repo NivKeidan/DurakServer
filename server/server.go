@@ -33,25 +33,36 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
 		_, _ = w.Write([]byte("OK"))
 		return
-	} else if r.Method != "GET" {
+	} else if r.Method != "POST" {
 		http.Error(w, createErrorJson("Method not allowed"), 405)
+	}
+
+	// Handle request object
+	type optionsObject struct {
+		NumOfPlayers int `json:"numOfPlayers"`
+	}
+
+	var reqBodyObject optionsObject
+	err := json.NewDecoder(r.Body).Decode(&reqBodyObject)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
 	}
 
 	// Validations
 
-	//if len(players) < 2 {
-	//	http.Error(w, "Can not start game with less than 2 players", 400)
-	//	return
-	//}
+	if reqBodyObject.NumOfPlayers < 2 || reqBodyObject.NumOfPlayers > 4 {
+		http.Error(w, "Can not start game with less than 2 players or more than four players", 400)
+		return
+	}
 
 	// Create objects
 
 	players = make([]string, 0)
-
-	players = append(players, "Niv")
-	players = append(players, "Asaf")
-	players = append(players, "Vala")
-	players = append(players, "Roee")
+	namesArray := []string{"Niv", "Asaf", "Vala", "Roee"}
+	for i := 0; i < reqBodyObject.NumOfPlayers; i++ {
+		players = append(players, namesArray[i])
+	}
 
 	newGame, err := game.NewGame(players...)
 
