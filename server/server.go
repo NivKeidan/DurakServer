@@ -34,7 +34,7 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("OK"))
 		return
 	} else if r.Method != "GET" {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 
 	// Validations
@@ -54,7 +54,7 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 	newGame, err := game.NewGame(players...)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 	currentGame = newGame
@@ -79,14 +79,14 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 
 	js, err := json.Marshal(resp)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(js)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 	}
 
 }
@@ -101,7 +101,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("OK"))
 		return
 	} else if r.Method != "POST" {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 
 	// Validations
@@ -116,7 +116,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 	var reqBodyObject attackObject
 	err := json.NewDecoder(r.Body).Decode(&reqBodyObject)
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
@@ -125,21 +125,21 @@ func attack(w http.ResponseWriter, r *http.Request) {
 
 
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
 	attackingPlayer, err := currentGame.GetPlayerByName(reqBodyObject.AttackingPlayerName)
 
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
 	err = currentGame.Attack(attackingPlayer, attackingCard)
 
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
@@ -155,7 +155,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 
 	js, err := json.Marshal(resp)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 
@@ -163,7 +163,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(js)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 }
@@ -178,7 +178,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("OK"))
 		return
 	} else if r.Method != "POST" {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 
 	// Validations
@@ -194,7 +194,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	var reqBodyObject defenseObject
 	err := json.NewDecoder(r.Body).Decode(&reqBodyObject)
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
@@ -202,28 +202,28 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	attackingCard, err := game.NewCardByCode(reqBodyObject.AttackingCardCode)
 
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
 	defendingCard, err := game.NewCardByCode(reqBodyObject.DefendingCardCode)
 
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
 	defendingPlayer, err := currentGame.GetPlayerByName(reqBodyObject.DefendingPlayerName)
 
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
 	err = currentGame.Defend(defendingPlayer, attackingCard, defendingCard)
 
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
@@ -239,7 +239,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 
 	js, err := json.Marshal(resp)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 
@@ -247,7 +247,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(js)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 
@@ -262,7 +262,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("OK"))
 		return
 	} else if r.Method != "POST" {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 
 	// Validations
@@ -299,7 +299,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 			losingPlayer, err := currentGame.GetLosingPlayer()
 
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				http.Error(w, createErrorJson(err.Error()), 400)
 				return
 			}
 			resp.LosingPlayerName = losingPlayer.Name
@@ -312,7 +312,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 
 	js, err := json.Marshal(resp)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 
@@ -320,7 +320,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(js)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 }
@@ -333,7 +333,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("OK"))
 		return
 	} else if r.Method != "POST" {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 	// Validations
 	//userName := r.Header.Get(USER_HEADER)
@@ -342,7 +342,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	err := currentGame.MoveToBita()
 
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
@@ -370,7 +370,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 		if !resp.IsDraw {
 			losingPlayer, err := currentGame.GetLosingPlayer()
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				http.Error(w, createErrorJson(err.Error()), 400)
 				return
 			}
 			resp.LosingPlayerName = losingPlayer.Name
@@ -382,7 +382,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 
 	js, err := json.Marshal(resp)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 
@@ -390,12 +390,23 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(js)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 }
 
 // Internal methods
+
+func createErrorJson(errorMessage string) string {
+	type errorResponse struct {
+		Message string `json:"message"`
+	}
+
+	resp := errorResponse{Message: errorMessage}
+	js, _ := json.Marshal(resp)
+	return string(js)
+
+}
 
 func addCorsHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
