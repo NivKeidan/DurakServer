@@ -46,6 +46,8 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 
 	// Create objects
 
+	players = make([]string, 0)
+
 	players = append(players, "Niv")
 	players = append(players, "Asaf")
 	players = append(players, "Vala")
