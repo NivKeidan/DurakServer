@@ -1,8 +1,10 @@
 package server
 
 import (
+	"CheekyCommons/stringutil"
 	"DurakGo/game"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 )
@@ -23,27 +25,23 @@ func InitServer() {
 }
 
 func startGame(w http.ResponseWriter, r *http.Request) {
-	/*
-		Initializes board, deals cards, chooses a kozer card, and sets first turn.
-	 */
 
-	// CORS
-	// TODO Better CORS handling
-	addCorsHeaders(w)
-	if r.Method == "OPTIONS" {
-		_, _ = w.Write([]byte("OK"))
+	// Validate request headers
+	allowedMethods := []string{"POST"}
+	err := validateRequest(&w, r, allowedMethods)
+	if err != nil {
 		return
-	} else if r.Method != "POST" {
-		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 
-	// Handle request object
+
+	// Parse request
 	type optionsObject struct {
 		NumOfPlayers int `json:"numOfPlayers"`
 	}
 
-	var reqBodyObject optionsObject
-	err := json.NewDecoder(r.Body).Decode(&reqBodyObject)
+	requestData := optionsObject{}
+	err = extractJSONData(&requestData, r)
+
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
@@ -51,16 +49,16 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 
 	// Validations
 
-	if reqBodyObject.NumOfPlayers < 2 || reqBodyObject.NumOfPlayers > 4 {
+	if requestData.NumOfPlayers < 2 || requestData.NumOfPlayers > 4 {
 		http.Error(w, "Can not start game with less than 2 players or more than four players", 400)
 		return
 	}
 
-	// Create objects
+	// Initialize game
 
 	players = make([]string, 0)
 	namesArray := []string{"Niv", "Asaf", "Vala", "Roee"}
-	for i := 0; i < reqBodyObject.NumOfPlayers; i++ {
+	for i := 0; i < requestData.NumOfPlayers; i++ {
 		players = append(players, namesArray[i])
 	}
 
@@ -87,62 +85,50 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 		NumOfCardsLeftInDeck: currentGame.NumOfCardsLeftInDeck(),
 		PlayerStartingName:   currentGame.GetStartingPlayer().Name,
 		PlayerDefendingName:  currentGame.GetDefendingPlayer().Name,
-		PlayerCards:          getPlayerCardsMap(),
+		PlayerCards:          currentGame.GetPlayersCardsMap(),
 	}
 
-	js, err := json.Marshal(resp)
+	err = integrateJSONResponse(&resp, &w)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(js)
-
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 500)
-	}
-
 }
 
 func attack(w http.ResponseWriter, r *http.Request) {
 
-	// CORS
-
-	// TODO Add better CORS handling
-	addCorsHeaders(w)
-	if r.Method == "OPTIONS" {
-		_, _ = w.Write([]byte("OK"))
+	// Validate request headers
+	allowedMethods := []string{"POST"}
+	err := validateRequest(&w, r, allowedMethods)
+	if err != nil {
 		return
-	} else if r.Method != "POST" {
-		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 
-	// Validations
-	//userName := r.Header.Get(USER_HEADER)
-
-	// Parse request body
+	// Parse request
 	type attackObject struct {
 		AttackingPlayerName string `json:"attackingPlayerName"`
 		AttackingCardCode string `json:"attackingCardCode"`
 	}
 
-	var reqBodyObject attackObject
-	err := json.NewDecoder(r.Body).Decode(&reqBodyObject)
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
-		return
-	}
-
-	// Perform action
-	attackingCard, err := game.NewCardByCode(reqBodyObject.AttackingCardCode)
-
+	requestData := attackObject{}
+	err = extractJSONData(&requestData, r)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
-	attackingPlayer, err := currentGame.GetPlayerByName(reqBodyObject.AttackingPlayerName)
+	// Validations
+
+
+	// Update game
+	attackingCard, err := game.NewCardByCode(requestData.AttackingCardCode)
+
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
+
+	attackingPlayer, err := currentGame.GetPlayerByName(requestData.AttackingPlayerName)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
@@ -156,77 +142,66 @@ func attack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle response
+
 	type attackResponse struct {
 		PlayerCards map[string][]*game.Card `json:"playerCards"`
 		CardsOnTable []*game.CardOnBoard `json:"cardsOnTable"`
 	}
 
 	resp := attackResponse{
-		PlayerCards: getPlayerCardsMap(),
+		PlayerCards: currentGame.GetPlayersCardsMap(),
 		CardsOnTable: currentGame.GetCardsOnBoard(),
 	}
 
-	js, err := json.Marshal(resp)
+	err = integrateJSONResponse(&resp, &w)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(js)
-
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 500)
-		return
 	}
 }
 
 func defend(w http.ResponseWriter, r *http.Request) {
 
-	// CORS
-
-	// TODO Add better CORS handling
-	addCorsHeaders(w)
-	if r.Method == "OPTIONS" {
-		_, _ = w.Write([]byte("OK"))
+	// Validate request headers
+	allowedMethods := []string{"POST"}
+	err := validateRequest(&w, r, allowedMethods)
+	if err != nil {
 		return
-	} else if r.Method != "POST" {
-		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 
-	// Validations
-	//userName := r.Header.Get(USER_HEADER)
-
-	// Parse request body
+	// Parse request
 	type defenseObject struct {
 		DefendingPlayerName string `json:"defendingPlayerName"`
 		DefendingCardCode string `json:"defendingCardCode"`
 		AttackingCardCode string `json:"attackingCardCode"`
 	}
 
-	var reqBodyObject defenseObject
-	err := json.NewDecoder(r.Body).Decode(&reqBodyObject)
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
-		return
-	}
-
-	// Perform action
-	attackingCard, err := game.NewCardByCode(reqBodyObject.AttackingCardCode)
+	requestData := defenseObject{}
+	err = extractJSONData(&requestData, r)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
-	defendingCard, err := game.NewCardByCode(reqBodyObject.DefendingCardCode)
+	// Validations
+
+	// Update game
+	attackingCard, err := game.NewCardByCode(requestData.AttackingCardCode)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
-	defendingPlayer, err := currentGame.GetPlayerByName(reqBodyObject.DefendingPlayerName)
+	defendingCard, err := game.NewCardByCode(requestData.DefendingCardCode)
+
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
+
+	defendingPlayer, err := currentGame.GetPlayerByName(requestData.DefendingPlayerName)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
@@ -240,52 +215,40 @@ func defend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle response
+
 	type defenseResponse struct {
 		PlayerCards map[string][]*game.Card `json:"playerCards"`
 		CardsOnTable []*game.CardOnBoard `json:"cardsOnTable"`
 	}
 
 	resp := defenseResponse{
-		PlayerCards: getPlayerCardsMap(),
+		PlayerCards: currentGame.GetPlayersCardsMap(),
 		CardsOnTable: currentGame.GetCardsOnBoard(),
 	}
 
-	js, err := json.Marshal(resp)
+	err = integrateJSONResponse(&resp, &w)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
-		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(js)
-
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 500)
-		return
-	}
-
-
 }
 
 func takeCards(w http.ResponseWriter, r *http.Request) {
-	// CORS
-	// TODO Add better CORS handling
-	addCorsHeaders(w)
-	if r.Method == "OPTIONS" {
-		_, _ = w.Write([]byte("OK"))
+	// Validate request headers
+	allowedMethods := []string{"POST"}
+	err := validateRequest(&w, r, allowedMethods)
+	if err != nil {
 		return
-	} else if r.Method != "POST" {
-		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
 
+	// Parse request
+
 	// Validations
-	//userName := r.Header.Get(USER_HEADER)
 
-	// TODO Add more validations
-
-	// Perform action
+	// Update game
 	currentGame.HandlePlayerTakesCard()
 
+	// Handle response
 	type takeCardsResponse struct {
 		PlayerCards          map[string][]*game.Card `json:"playerCards"`
 		CardsOnTable         []*game.CardOnBoard     `json:"cardsOnTable"`
@@ -298,66 +261,43 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := takeCardsResponse{
-		PlayerCards:          getPlayerCardsMap(),
+		PlayerCards:          currentGame.GetPlayersCardsMap(),
 		CardsOnTable:         currentGame.GetCardsOnBoard(),
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
 		PlayerStartingName:   currentGame.GetStartingPlayer().Name,
 		PlayerDefendingName:  currentGame.GetDefendingPlayer().Name,
 		GameOver:             currentGame.IsGameOver(),
+		IsDraw:				  currentGame.IsDraw(),
+		LosingPlayerName:	  currentGame.GetLosingPlayerName(),
 	}
 
-	if resp.GameOver {
-		resp.IsDraw =  currentGame.IsDraw()
-		if !resp.IsDraw {
-			losingPlayer, err := currentGame.GetLosingPlayer()
-
-			if err != nil {
-				http.Error(w, createErrorJson(err.Error()), 400)
-				return
-			}
-			resp.LosingPlayerName = losingPlayer.Name
-		}
-
-	} else {
-		resp.IsDraw = false
-		resp.LosingPlayerName = ""
-	}
-
-	js, err := json.Marshal(resp)
+	err = integrateJSONResponse(&resp, &w)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(js)
-
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 500)
-		return
 	}
 }
 
 func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
-	// CORS
-	// TODO Add better CORS handling
-	addCorsHeaders(w)
-	if r.Method == "OPTIONS" {
-		_, _ = w.Write([]byte("OK"))
+	// Validate request headers
+	allowedMethods := []string{"POST"}
+	err := validateRequest(&w, r, allowedMethods)
+	if err != nil {
 		return
-	} else if r.Method != "POST" {
-		http.Error(w, createErrorJson("Method not allowed"), 405)
 	}
-	// Validations
-	//userName := r.Header.Get(USER_HEADER)
 
-	// Perform action
-	err := currentGame.MoveToBita()
+	// Parse request
+
+	// Validations
+
+	// Update game
+	err = currentGame.MoveToBita()
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
+
+	// Handle response
 
 	type newTurnResponse struct {
 		PlayerCards          map[string][]*game.Card `json:"playerCards"`
@@ -371,46 +311,76 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := newTurnResponse{
-		PlayerCards:          getPlayerCardsMap(),
+		PlayerCards:          currentGame.GetPlayersCardsMap(),
 		CardsOnTable:         currentGame.GetCardsOnBoard(),
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
 		PlayerStartingName:   currentGame.GetStartingPlayer().Name,
 		PlayerDefendingName:  currentGame.GetDefendingPlayer().Name,
 		GameOver:             currentGame.IsGameOver(),
-	}
-	if resp.GameOver {
-		resp.IsDraw =  currentGame.IsDraw()
-		if !resp.IsDraw {
-			losingPlayer, err := currentGame.GetLosingPlayer()
-			if err != nil {
-				http.Error(w, createErrorJson(err.Error()), 400)
-				return
-			}
-			resp.LosingPlayerName = losingPlayer.Name
-		}
-	} else {
-		resp.IsDraw = false
-		resp.LosingPlayerName = ""
+		IsDraw:				  currentGame.IsDraw(),
+		LosingPlayerName:	  currentGame.GetLosingPlayerName(),
 	}
 
-	js, err := json.Marshal(resp)
+	err = integrateJSONResponse(&resp, &w)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(js)
-
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 500)
-		return
 	}
 }
 
 // Internal methods
 
+func validateRequest(w *http.ResponseWriter, r *http.Request, allowedMethods []string) error {
+	// Handles CORS, HTTP Method
+
+	// TODO Upgrade CORS handling
+	addCorsHeaders(*w)
+	if r.Method == "OPTIONS" {
+		_, _ = (*w).Write([]byte("OK"))
+		return errors.New("send response back now")
+
+	} else if !isMethodAllowed(r, allowedMethods) {
+		http.Error(*w, createErrorJson("Method not allowed"), 405)
+		return errors.New("send response back now")
+	}
+	return nil
+}
+
+func extractJSONData(t JSONRequestPayload, r *http.Request) error {
+	// First argument is the object the data is extracted from
+	err := json.NewDecoder(r.Body).Decode(t)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type JSONRequestPayload interface {}
+
+type JSONResponseData interface {}
+
+func integrateJSONResponse(resp JSONResponseData, w *http.ResponseWriter) error {
+	// First argument is the object the data is put into
+
+	js, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+	(*w).Header().Set("Content-Type", "application/json")
+	_, err = (*w).Write(js)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func isMethodAllowed(request *http.Request, allowedMethods []string) bool {
+	return stringutil.IsStringInSlice(allowedMethods, request.Method)
+}
+
 func createErrorJson(errorMessage string) string {
+	// Default HTTP JSON body error response
+
 	type errorResponse struct {
 		Message string `json:"message"`
 	}
@@ -422,18 +392,8 @@ func createErrorJson(errorMessage string) string {
 }
 
 func addCorsHeaders(w http.ResponseWriter) {
+	// TODO Integrate this from config file
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-}
-
-func getPlayerCardsMap() map[string][]*game.Card {
-	playerCards := make(map[string][]*game.Card)
-	for _, playerName := range players {
-		player, _ := currentGame.GetPlayerByName(playerName)
-		cards := player.GetAllCards()
-		playerCards[playerName] = cards
-	}
-
-	return playerCards
-
 }

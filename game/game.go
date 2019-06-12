@@ -158,18 +158,18 @@ func (this *Game) GetNumOfCardsLeftInDeck() int {
 	return this.deck.GetNumOfCardsLeft()
 }
 
-func (this *Game) GetLosingPlayer() (*Player, error) {
+func (this *Game) GetLosingPlayer() *Player {
 	if !this.IsGameOver() {
-		return nil, errors.New("game is not over")
+		return nil
 	} else if this.IsDraw() {
-		return nil, errors.New("draw, no losing player")
+		return nil
 	}
 	for _, p := range this.players {
 		if p.GetNumOfCardsInHand() != 0 {
-			return p, nil
+			return p
 		}
 	}
-	return nil, errors.New("all players have no cards")
+	return nil
 }
 
 func (this *Game) GetStartingPlayer() *Player {
@@ -296,4 +296,24 @@ func (this *Game) getPreviousPlayer(player *Player) *Player {
 		p = p.NextPlayer
 	}
 	return p
+}
+
+func (this *Game) GetLosingPlayerName() string {
+	losingPlayer := this.GetLosingPlayer()
+	if losingPlayer == nil {
+		return ""
+	} else {
+		return losingPlayer.Name
+	}
+
+}
+
+func (this *Game) GetPlayersCardsMap() map[string][]*Card {
+	playerCards := make(map[string][]*Card)
+	for _, player := range this.players {
+		cards := player.GetAllCards()
+		playerCards[player.Name] = cards
+	}
+	return playerCards
+
 }
