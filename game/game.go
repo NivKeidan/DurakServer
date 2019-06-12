@@ -212,7 +212,7 @@ func (this *Game) canPlayerAttackNow(player *Player) bool {
 	if this.board.isEmpty() {
 		return this.startingPlayer == player
 	} else {
-		return true
+		return player != this.defendingPlayer
 	}
 }
 
