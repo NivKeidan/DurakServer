@@ -24,7 +24,7 @@ func InitServer() {
 	http.HandleFunc("/defend", defend)
 	http.HandleFunc("/takeCards", takeCards)
 	http.HandleFunc("/moveCardsToBita", moveCardsToBita)
-	http.HandleFunc("/getCurrentGameStatus", getCurrentGameStatus)
+	http.HandleFunc("/gameStatus", getCurrentGameStatus)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
