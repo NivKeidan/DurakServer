@@ -11,11 +11,15 @@ import (
 
 var players = make([]string, 0)
 var currentGame *game.Game
+var isGameCreated = false
+var isGameStarted = false
+var numOfPlayers int
 
 // External API
 
 func InitServer() {
-	http.HandleFunc("/startGame", startGame)
+	http.HandleFunc("/createGame", createGame)
+	http.HandleFunc("/joinGame", joinGame)
 	http.HandleFunc("/attack", attack)
 	http.HandleFunc("/defend", defend)
 	http.HandleFunc("/takeCards", takeCards)
@@ -24,15 +28,13 @@ func InitServer() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func startGame(w http.ResponseWriter, r *http.Request) {
-
+func createGame(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"POST"}
 	err := validateRequest(&w, r, allowedMethods)
 	if err != nil {
 		return
 	}
-
 
 	// Parse request
 	type optionsObject struct {
@@ -54,44 +56,118 @@ func startGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Initialize game
+	// Initializations
 
-	players = make([]string, 0)
-	namesArray := []string{"Niv", "Asaf", "Vala", "Roee"}
-	for i := 0; i < requestData.NumOfPlayers; i++ {
-		players = append(players, namesArray[i])
+	numOfPlayers = requestData.NumOfPlayers
+	players = make([]string, numOfPlayers)
+	isGameCreated = true
+}
+
+func joinGame(w http.ResponseWriter, r *http.Request) {
+
+	// Validate request headers
+	allowedMethods := []string{"POST"}
+	err := validateRequest(&w, r, allowedMethods)
+	if err != nil {
+		return
 	}
+
+	// Parse request
+	type optionsObject struct {
+		PlayerName string `json:"playerName"`
+	}
+
+	requestData := optionsObject{}
+	err = extractJSONData(&requestData, r)
+
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
+
+	// Validations
+
+	if !isGameCreated {
+		http.Error(w, createErrorJson("Create a game first"), 400)
+	}
+
+	if isGameStarted {
+		http.Error(w, createErrorJson("Game has already started"), 400)
+	}
+
+	if !isNameValid(requestData.PlayerName) {
+		http.Error(w, createErrorJson("Player name contains illegal characters"), 400)
+	}
+
+	if stringutil.IsStringInSlice(players, requestData.PlayerName) {
+		http.Error(w, createErrorJson("Name already exists"), 400)
+	}
+
+	// Add player
+	if len(players) < numOfPlayers {
+		players = append(players, requestData.PlayerName)
+	}
+
+	// Start game if required
+	if len(players) == numOfPlayers {
+		initializeGame()
+		isGameStarted = true
+		eventSourceDummyGameStarted()
+		return
+	}
+
+	eventSourceDummyPlayerJoined()
+}
+
+func isNameValid(name string) bool {
+	// TODO Add name validations
+	return true
+
+}
+
+func initializeGame() {
 
 	newGame, err := game.NewGame(players...)
 
 	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 500)
+		eventSourceDummyFailToStartGame(err)
 		return
 	}
 	currentGame = newGame
+}
 
-	// Handle response
+func eventSourceDummyPlayerJoined() {
+	// Dummy for sending out eventsource event for another player joined
+	// but game is still not starting
+}
 
-	type startGameResponse struct {
-		PlayerCards          map[string][]*game.Card `json:"playerCards"`
-		KozerCard            *game.Card              `json:"kozerCard"`
-		NumOfCardsLeftInDeck int                     `json:"numOfCardsLeftInDeck"`
-		PlayerStartingName   string                  `json:"playerStarting"`
-		PlayerDefendingName  string                  `json:"playerDefending"`
-	}
+func eventSourceDummyGameStarted() {
+	// Dummy for sending out eventsource event for game starting
 
-	resp := startGameResponse {
-		KozerCard:            currentGame.KozerCard,
-		NumOfCardsLeftInDeck: currentGame.NumOfCardsLeftInDeck(),
-		PlayerStartingName:   currentGame.GetStartingPlayer().Name,
-		PlayerDefendingName:  currentGame.GetDefendingPlayer().Name,
-		PlayerCards:          currentGame.GetPlayersCardsMap(),
-	}
+	//type startGameResponse struct {
+	//	PlayerCards          map[string][]*game.Card `json:"playerCards"`
+	//	KozerCard            *game.Card              `json:"kozerCard"`
+	//	NumOfCardsLeftInDeck int                     `json:"numOfCardsLeftInDeck"`
+	//	PlayerStartingName   string                  `json:"playerStarting"`
+	//	PlayerDefendingName  string                  `json:"playerDefending"`
+	//}
+	//
+	//resp := startGameResponse {
+	//	KozerCard:            currentGame.KozerCard,
+	//	NumOfCardsLeftInDeck: currentGame.NumOfCardsLeftInDeck(),
+	//	PlayerStartingName:   currentGame.GetStartingPlayer().Name,
+	//	PlayerDefendingName:  currentGame.GetDefendingPlayer().Name,
+	//	PlayerCards:          currentGame.GetPlayersCardsMap(),
+	//}
 
-	err = integrateJSONResponse(&resp, &w)
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 500)
-	}
+	//err = integrateJSONResponse(&resp, &w)
+	//if err != nil {
+	//	http.Error(w, createErrorJson(err.Error()), 500)
+	//}
+}
+
+func eventSourceDummyFailToStartGame(e error) {
+	// Dummy for sending out eventsource event for failure to start game
 }
 
 func attack(w http.ResponseWriter, r *http.Request) {
