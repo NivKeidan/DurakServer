@@ -86,7 +86,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	// Initializations
 
 	numOfPlayers = requestData.NumOfPlayers
-	players = make([]string, numOfPlayers)
+	players = make([]string, 0)
 	isGameCreated = true
 
 	// Handle response
@@ -122,18 +122,22 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 
 	if !isGameCreated {
 		http.Error(w, createErrorJson("Create a game first"), 400)
+		return
 	}
 
 	if isGameStarted {
 		http.Error(w, createErrorJson("Game has already started"), 400)
+		return
 	}
 
 	if !isNameValid(requestData.PlayerName) {
 		http.Error(w, createErrorJson("Player name contains illegal characters"), 400)
+		return
 	}
 
 	if stringutil.IsStringInSlice(players, requestData.PlayerName) {
 		http.Error(w, createErrorJson("Name already exists"), 400)
+		return
 	}
 
 	// Add player
