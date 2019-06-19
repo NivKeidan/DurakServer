@@ -24,8 +24,35 @@ func InitServer() {
 	http.HandleFunc("/defend", defend)
 	http.HandleFunc("/takeCards", takeCards)
 	http.HandleFunc("/moveCardsToBita", moveCardsToBita)
+	http.HandleFunc("/getCurrentGameStatus", getCurrentGameStatus)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func getCurrentGameStatus(w http.ResponseWriter, r *http.Request) {
+	// Validate request headers
+	allowedMethods := []string{"GET"}
+	err := validateRequest(&w, r, allowedMethods)
+	if err != nil {
+		return
+	}
+
+	// Handle response
+
+	type gameStatusResponse struct {
+		IsGameRunning bool `json:"isGameRunning"`
+		IsGameCreated bool `json:"isGameCreated"`
+	}
+
+	resp := gameStatusResponse{
+		IsGameRunning: isGameStarted,
+		IsGameCreated: isGameCreated,
+	}
+
+	err = integrateJSONResponse(&resp, &w)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+	}
 }
 
 func createGame(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +149,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	} else {
 		eventSourceDummyPlayerJoined()
 	}
-	
+
 	// Handle response
 	err = integrateJSONResponse(createSuccessJson(), &w)
 	if err != nil {
