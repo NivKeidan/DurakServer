@@ -61,6 +61,12 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	numOfPlayers = requestData.NumOfPlayers
 	players = make([]string, numOfPlayers)
 	isGameCreated = true
+
+	// Handle response
+	err = integrateJSONResponse(createSuccessJson(), &w)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+	}
 }
 
 func joinGame(w http.ResponseWriter, r *http.Request) {
@@ -113,10 +119,15 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 		initializeGame()
 		isGameStarted = true
 		eventSourceDummyGameStarted()
-		return
+	} else {
+		eventSourceDummyPlayerJoined()
 	}
-
-	eventSourceDummyPlayerJoined()
+	
+	// Handle response
+	err = integrateJSONResponse(createSuccessJson(), &w)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+	}
 }
 
 func isNameValid(name string) bool {
@@ -434,6 +445,18 @@ type JSONRequestPayload interface {}
 
 type JSONResponseData interface {}
 
+func createSuccessJson() JSONResponseData {
+	// Default HTTP JSON body error response
+
+	type errorResponse struct {
+		Success bool `json:"success"`
+		Message string `json:"message"`
+	}
+
+	resp := errorResponse{Message: "", Success: true}
+	return resp
+}
+
 func integrateJSONResponse(resp JSONResponseData, w *http.ResponseWriter) error {
 	// First argument is the object the data is put into
 
@@ -458,10 +481,11 @@ func createErrorJson(errorMessage string) string {
 	// Default HTTP JSON body error response
 
 	type errorResponse struct {
+		Success bool `json:"success"`
 		Message string `json:"message"`
 	}
 
-	resp := errorResponse{Message: errorMessage}
+	resp := errorResponse{Message: errorMessage, Success: false}
 	js, _ := json.Marshal(resp)
 	return string(js)
 
