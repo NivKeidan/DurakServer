@@ -5,6 +5,7 @@ import (
 	"DurakGo/game"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -20,6 +21,7 @@ var numOfPlayers int
 func InitServer() {
 	http.HandleFunc("/createGame", createGame)
 	http.HandleFunc("/joinGame", joinGame)
+	http.HandleFunc("/leaveGame", leaveGame)
 	http.HandleFunc("/attack", attack)
 	http.HandleFunc("/defend", defend)
 	http.HandleFunc("/takeCards", takeCards)
@@ -94,6 +96,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
+	fmt.Println("New game created")
 }
 
 func joinGame(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +121,8 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	playerName := requestData.PlayerName
+
 	// Validations
 
 	if !isGameCreated {
@@ -135,14 +140,14 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if stringutil.IsStringInSlice(players, requestData.PlayerName) {
+	if stringutil.IsStringInSlice(players, playerName) {
 		http.Error(w, createErrorJson("Name already exists"), 400)
 		return
 	}
 
 	// Add player
 	if len(players) < numOfPlayers {
-		players = append(players, requestData.PlayerName)
+		players = append(players, playerName)
 	}
 
 	// Start game if required
@@ -159,6 +164,65 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
+
+	fmt.Printf("%v has joined the game\n", playerName)
+}
+
+func leaveGame(w http.ResponseWriter, r *http.Request) {
+	// Validate request headers
+	allowedMethods := []string{"POST"}
+	err := validateRequest(&w, r, allowedMethods)
+	if err != nil {
+		return
+	}
+
+	// Parse request
+	type leaveGameObject struct {
+		PlayerName string `json:"playerName"`
+	}
+
+	requestData := leaveGameObject{}
+	err = extractJSONData(&requestData, r)
+
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
+
+	playerName := requestData.PlayerName
+
+	// Validations
+
+	if !isGameCreated {
+		http.Error(w, createErrorJson("Create a game first"), 400)
+		return
+	}
+
+	if !stringutil.IsStringInSlice(players, playerName) {
+		http.Error(w, createErrorJson("Could not find player"), 400)
+		return
+	}
+
+	// TODO Handle game already started
+
+	// Remove player
+	if len(players) < numOfPlayers {
+		players = stringutil.RemoveStringFromSlice(players, playerName)
+	}
+
+	// Un-create game if required
+	if len(players) == 0 {
+		fmt.Printf("Game was cancelled\n")
+		isGameCreated = false
+	}
+
+	// Handle response
+	err = integrateJSONResponse(createSuccessJson(), &w)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+	}
+
+	fmt.Printf("%v has left the game\n", playerName)
 }
 
 func isNameValid(name string) bool {
