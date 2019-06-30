@@ -189,6 +189,8 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 		isGameCreated = false
 	}
 
+	streamer.publish(getGameStatus())
+
 	// Handle response
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
