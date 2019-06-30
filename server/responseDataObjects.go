@@ -32,24 +32,16 @@ type startGameResponse struct {
 	PlayerStartingName   string                  `json:"playerStarting"`
 	PlayerDefendingName  string                  `json:"playerDefending"`
 	CardsOnTable         []*game.CardOnBoard     `json:"cardsOnTable"`
+	Players				 []string				 `json:"players"`
 }
 
-func GetEventName(obj *JSONResponseData) string {
-	if _, ok := (*obj).(gameStatusResponse); ok {
-		return "gamecreated"
-	}
-
-	if _, ok := (*obj).(startGameResponse); ok {
-		return "gamestarted"
-	}
-
-	if _, ok := (*obj).(gameUpdateResponse); ok {
-		return "gameupdated"
-	}
-
-	if _, ok := (*obj).(turnUpdateResponse); ok {
-		return "gameupdated"
-	}
-
-	return ""
+type gameRestartResponse struct {
+	PlayerCards          map[string][]*game.Card `json:"playerCards"`
+	KozerCard            *game.Card              `json:"kozerCard"`
+	CardsOnTable         []*game.CardOnBoard     `json:"cardsOnTable"`
+	NumOfCardsLeftInDeck int                     `json:"numOfCardsLeftInDeck"`
+	PlayerStartingName   string                  `json:"playerStarting"`
+	PlayerDefendingName  string                  `json:"playerDefending"`
+	GameOver             bool                    `json:"gameOver"`
+	IsDraw               bool                    `json:"isDraw"`
 }

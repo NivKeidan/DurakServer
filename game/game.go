@@ -317,3 +317,11 @@ func (this *Game) GetPlayersCardsMap() map[string][]*Card {
 	return playerCards
 
 }
+
+func (this *Game) GetPlayerNamesArray() []string {
+	arr := make([]string, 0)
+	for _, player := range this.players {
+		arr = append(arr, player.Name)
+	}
+	return arr
+}

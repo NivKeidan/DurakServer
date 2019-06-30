@@ -139,3 +139,27 @@ func createStreamData(jsonObj JSONResponseData) (string, error) {
 	return str, nil
 }
 
+func GetEventName(obj *JSONResponseData) string {
+	if _, ok := (*obj).(gameStatusResponse); ok {
+		return "gamecreated"
+	}
+
+	if _, ok := (*obj).(startGameResponse); ok {
+		return "gamestarted"
+	}
+
+	if _, ok := (*obj).(gameRestartResponse); ok {
+		return "gamerestarted"
+	}
+
+
+	if _, ok := (*obj).(gameUpdateResponse); ok {
+		return "gameupdated"
+	}
+
+	if _, ok := (*obj).(turnUpdateResponse); ok {
+		return "gameupdated"
+	}
+
+	return ""
+}

@@ -374,7 +374,7 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 	initializeGame()
 
 	// Handle response
-	streamer.publish(getStartGameResponse())
+	streamer.publish(getGameRestartResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -415,6 +415,7 @@ func getStartGameResponse() JSONResponseData {
 		PlayerStartingName: currentGame.GetStartingPlayer().Name,
 		PlayerDefendingName: currentGame.GetDefendingPlayer().Name,
 		CardsOnTable:         currentGame.GetCardsOnBoard(),
+		Players:			currentGame.GetPlayerNamesArray(),
 	}
 
 	return resp
@@ -424,6 +425,21 @@ func getGameStatusResponse() JSONResponseData {
 	resp := gameStatusResponse {
 		IsGameRunning: isGameStarted,
 		IsGameCreated: isGameCreated,
+	}
+
+	return resp
+}
+
+func getGameRestartResponse() JSONResponseData {
+	resp := gameRestartResponse{
+		PlayerCards:          currentGame.GetPlayersCardsMap(),
+		KozerCard:            currentGame.KozerCard,
+		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
+		PlayerStartingName:   currentGame.GetStartingPlayer().Name,
+		PlayerDefendingName:  currentGame.GetDefendingPlayer().Name,
+		CardsOnTable:         currentGame.GetCardsOnBoard(),
+		GameOver:             currentGame.IsGameOver(),
+		IsDraw:				  currentGame.IsDraw(),
 	}
 
 	return resp
