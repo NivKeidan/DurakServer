@@ -112,7 +112,7 @@ func (this *SSEStreamer) publish(respData JSONResponseData) {
 		fmt.Printf("cant get stream data: %s\n", err)
 	}
 
-	body = "event:" + GetEventName(&respData) + "\ndata:" + body + "\n\n"
+	body = "event:" + getEventName(&respData) + "\ndata:" + body + "\n\n"
 
 	this.Notifier <- []byte(body)
 
@@ -139,7 +139,7 @@ func createStreamData(jsonObj JSONResponseData) (string, error) {
 	return str, nil
 }
 
-func GetEventName(obj *JSONResponseData) string {
+func getEventName(obj *JSONResponseData) string {
 	if _, ok := (*obj).(gameStatusResponse); ok {
 		return "gamecreated"
 	}
