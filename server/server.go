@@ -21,7 +21,7 @@ var streamer = NewStreamer()
 // External API
 
 func InitServer() {
-	http.HandleFunc("/eventSource", registerToStream)
+	http.HandleFunc("/appStream", registerToStream)
 	http.HandleFunc("/createGame", createGame)
 	http.HandleFunc("/joinGame", joinGame)
 	http.HandleFunc("/leaveGame", leaveGame)
