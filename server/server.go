@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 )
 
@@ -93,7 +94,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
 	fmt.Println("New game created")
@@ -132,7 +133,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle response
-	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
 
@@ -481,6 +482,15 @@ func getGameRestartResponse() JSONResponseData {
 	return resp
 }
 
+func getPlayerJoinedResponse(playerName string) JSONResponseData {
+	resp := playerJoinedResponse{
+		PlayerName: playerName,
+		IdCode: createPlayerIdentificationString(),
+	}
+
+	return resp
+}
+
 // Request/Response Related
 
 func extractJSONData(t JSONRequestPayload, r *http.Request) error {
@@ -541,6 +551,17 @@ func addCorsHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 }
+
+func createPlayerIdentificationString() string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*~"
+	const length = 10
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 
 // Game Logic
 

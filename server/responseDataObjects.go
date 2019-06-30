@@ -45,3 +45,8 @@ type gameRestartResponse struct {
 	GameOver             bool                    `json:"gameOver"`
 	IsDraw               bool                    `json:"isDraw"`
 }
+
+type playerJoinedResponse struct {
+	PlayerName string `json:"playerName"`
+	IdCode string `json:"idCode"`
+}
