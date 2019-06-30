@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-var players []string
+var playerNames []string
 var currentGame *game.Game
 var isGameCreated = false
 var isGameStarted = false
@@ -65,21 +65,33 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validations
+	// Create game
 
-	if requestData.NumOfPlayers < 2 || requestData.NumOfPlayers > 4 {
-		http.Error(w, "Can not start game with less than 2 players or more than four players", 400)
+	numOfPlayers = requestData.NumOfPlayers
+	playerName := requestData.PlayerName
+
+	if err := validateCreateGame(requestData); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
-	// Initializations
+	handleCreateGame()
+	streamer.publish(getGameStatusResponse())
 
-	numOfPlayers = requestData.NumOfPlayers
-	players = make([]string, 0)
-	isGameCreated = true
+	// Join game
+
+	if err := validateJoinGame(playerName); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
+
+	handlePlayerJoin(playerName)
+
+	if isGameStarted {
+		streamer.publish(getStartGameResponse())
+	}
 
 	// Handle response
-	streamer.publish(getGameStatusResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -107,36 +119,12 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 
 	// Validations
 
-	if !isGameCreated {
-		http.Error(w, createErrorJson("Create a game first"), 400)
+	if err := validateJoinGame(playerName); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
 
-	if isGameStarted {
-		http.Error(w, createErrorJson("Game has already started"), 400)
-		return
-	}
-
-	if !isNameValid(requestData.PlayerName) {
-		http.Error(w, createErrorJson("Player name contains illegal characters"), 400)
-		return
-	}
-
-	if stringutil.IsStringInSlice(players, playerName) {
-		http.Error(w, createErrorJson("Name already exists"), 400)
-		return
-	}
-
-	// Add player
-	if len(players) < numOfPlayers {
-		players = append(players, playerName)
-	}
-
-	// Start game if required
-	if len(players) == numOfPlayers {
-		initializeGame()
-		isGameStarted = true
-	}
+	handlePlayerJoin(playerName)
 
 	streamer.publish(getGameStatusResponse())
 	if isGameStarted {
@@ -175,7 +163,7 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !stringutil.IsStringInSlice(players, playerName) {
+	if !stringutil.IsStringInSlice(playerNames, playerName) {
 		http.Error(w, createErrorJson("Could not find player"), 400)
 		return
 	}
@@ -183,12 +171,12 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 	// TODO Handle game already started
 
 	// Remove player
-	if len(players) < numOfPlayers {
-		players = stringutil.RemoveStringFromSlice(players, playerName)
+	if len(playerNames) < numOfPlayers {
+		playerNames = stringutil.RemoveStringFromSlice(playerNames, playerName)
 	}
 
 	// Un-create game if required
-	if len(players) == 0 {
+	if len(playerNames) == 0 {
 		fmt.Printf("Game was cancelled\n")
 		isGameCreated = false
 	}
@@ -374,7 +362,7 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 	// Validations
 
 	// Update game
-	initializeGame()
+	startGame()
 
 	// Handle response
 	streamer.publish(getGameRestartResponse())
@@ -382,6 +370,51 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
+}
+
+// Validations
+
+func validateRequest(w *http.ResponseWriter, r *http.Request, allowedMethods []string) error {
+	// Handles CORS, HTTP Method
+
+	// TODO Upgrade CORS handling
+	addCorsHeaders(*w)
+	if r.Method == "OPTIONS" {
+		_, _ = (*w).Write([]byte("OK"))
+		return errors.New("send response back now")
+
+	} else if !isMethodAllowed(r, allowedMethods) {
+		http.Error(*w, createErrorJson("Method not allowed"), 405)
+		return errors.New("send response back now")
+	}
+	return nil
+}
+
+func validateJoinGame(playerName string) error {
+
+	if !isGameCreated {
+		return errors.New("create a game first")
+	}
+
+	if isGameStarted {
+		return errors.New("game has already started")
+	}
+
+	if !isNameValid(playerName) {
+		return errors.New("player name contains illegal characters")
+	}
+
+	if stringutil.IsStringInSlice(playerNames, playerName) {
+		return errors.New("name already exists")
+	}
+	return nil
+}
+
+func validateCreateGame(requestData createGameRequestObject) error {
+	if requestData.NumOfPlayers < 2 || requestData.NumOfPlayers > 4 {
+		return errors.New("can not start game with less than 2 playerNames or more than four playerNames")
+	}
+	return nil
 }
 
 // SSE
@@ -448,34 +481,7 @@ func getGameRestartResponse() JSONResponseData {
 	return resp
 }
 
-// Internal methods
-
-func initializeGame() {
-
-	newGame, err := game.NewGame(players...)
-
-	if err != nil {
-		// TODO Handle error
-		return
-	}
-	currentGame = newGame
-}
-
-func validateRequest(w *http.ResponseWriter, r *http.Request, allowedMethods []string) error {
-	// Handles CORS, HTTP Method
-
-	// TODO Upgrade CORS handling
-	addCorsHeaders(*w)
-	if r.Method == "OPTIONS" {
-		_, _ = (*w).Write([]byte("OK"))
-		return errors.New("send response back now")
-
-	} else if !isMethodAllowed(r, allowedMethods) {
-		http.Error(*w, createErrorJson("Method not allowed"), 405)
-		return errors.New("send response back now")
-	}
-	return nil
-}
+// Request/Response Related
 
 func extractJSONData(t JSONRequestPayload, r *http.Request) error {
 	// First argument is the object the data is extracted from
@@ -534,4 +540,35 @@ func addCorsHeaders(w http.ResponseWriter) {
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+}
+
+// Game Logic
+
+func startGame() {
+
+	newGame, err := game.NewGame(playerNames...)
+
+	if err != nil {
+		// TODO Handle error
+		return
+	}
+	currentGame = newGame
+	isGameStarted = true
+}
+
+func handlePlayerJoin(playerName string) {
+	// Add player
+	if len(playerNames) < numOfPlayers {
+		playerNames = append(playerNames, playerName)
+	}
+
+	// Start game if required
+	if len(playerNames) == numOfPlayers {
+		startGame()
+	}
+}
+
+func handleCreateGame() {
+	playerNames = make([]string, 0)
+	isGameCreated = true
 }

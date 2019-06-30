@@ -4,6 +4,7 @@ type JSONRequestPayload interface {}
 
 type createGameRequestObject struct {
 	NumOfPlayers int `json:"numOfPlayers"`
+	PlayerName string `json:"playerName"`
 }
 
 type joinGameRequestObject struct {
