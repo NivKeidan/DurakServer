@@ -31,6 +31,7 @@ type startGameResponse struct {
 	NumOfCardsLeftInDeck int                     `json:"numOfCardsLeftInDeck"`
 	PlayerStartingName   string                  `json:"playerStarting"`
 	PlayerDefendingName  string                  `json:"playerDefending"`
+	CardsOnTable         []*game.CardOnBoard     `json:"cardsOnTable"`
 }
 
 func GetEventName(obj *JSONResponseData) string {

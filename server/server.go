@@ -28,6 +28,7 @@ func InitServer() {
 	http.HandleFunc("/defend", defend)
 	http.HandleFunc("/takeCards", takeCards)
 	http.HandleFunc("/moveCardsToBita", moveCardsToBita)
+	http.HandleFunc("/restartGame", restartGame)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -43,7 +44,7 @@ func registerToStream(w http.ResponseWriter, r *http.Request) {
 
 	// Register client to streamer
 	outgoingChannel := streamer.registerClient(&w, r)
-	streamer.publish(getGameStatus())
+	streamer.publish(getGameStatusResponse())
 	streamer.streamLoop(&w, outgoingChannel)
 }
 
@@ -75,7 +76,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	isGameCreated = true
 
 	// Handle response
-	streamer.publish(getGameStatus())
+	streamer.publish(getGameStatusResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -134,9 +135,9 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 		isGameStarted = true
 	}
 
-	streamer.publish(getGameStatus())
+	streamer.publish(getGameStatusResponse())
 	if isGameStarted {
-		streamer.publish(startGame())
+		streamer.publish(getStartGameResponse())
 	}
 
 	// Handle response
@@ -189,7 +190,7 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 		isGameCreated = false
 	}
 
-	streamer.publish(getGameStatus())
+	streamer.publish(getGameStatusResponse())
 
 	// Handle response
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
@@ -247,7 +248,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	streamer.publish(updateTurn())
+	streamer.publish(getUpdateTurnResponse())
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -302,7 +303,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	streamer.publish(updateTurn())
+	streamer.publish(getUpdateTurnResponse())
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -325,7 +326,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	streamer.publish(updateGame())
+	streamer.publish(getUpdateGameResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -351,7 +352,29 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	streamer.publish(updateGame())
+	streamer.publish(getUpdateGameResponse())
+
+	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+	}
+}
+
+func restartGame(w http.ResponseWriter, r *http.Request) {
+	// Validate request headers
+	allowedMethods := []string{"POST"}
+	if err := validateRequest(&w, r, allowedMethods); err != nil {
+		return
+	}
+
+	// Parse request
+
+	// Validations
+
+	// Update game
+	initializeGame()
+
+	// Handle response
+	streamer.publish(getStartGameResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -360,7 +383,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 
 // SSE
 
-func updateGame() JSONResponseData {
+func getUpdateGameResponse() JSONResponseData {
 	resp := gameUpdateResponse{
 		PlayerCards:          currentGame.GetPlayersCardsMap(),
 		CardsOnTable:         currentGame.GetCardsOnBoard(),
@@ -375,7 +398,7 @@ func updateGame() JSONResponseData {
 	return resp
 }
 
-func updateTurn() JSONResponseData {
+func getUpdateTurnResponse() JSONResponseData {
 	resp := turnUpdateResponse{
 		PlayerCards: currentGame.GetPlayersCardsMap(),
 		CardsOnTable: currentGame.GetCardsOnBoard(),
@@ -384,19 +407,20 @@ func updateTurn() JSONResponseData {
 	return resp
 }
 
-func startGame() JSONResponseData {
+func getStartGameResponse() JSONResponseData {
 	resp := startGameResponse {
 		PlayerCards: currentGame.GetPlayersCardsMap(),
 		KozerCard: currentGame.KozerCard,
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
 		PlayerStartingName: currentGame.GetStartingPlayer().Name,
 		PlayerDefendingName: currentGame.GetDefendingPlayer().Name,
+		CardsOnTable:         currentGame.GetCardsOnBoard(),
 	}
 
 	return resp
 }
 
-func getGameStatus() JSONResponseData {
+func getGameStatusResponse() JSONResponseData {
 	resp := gameStatusResponse {
 		IsGameRunning: isGameStarted,
 		IsGameCreated: isGameCreated,
