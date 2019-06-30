@@ -45,6 +45,9 @@ func registerToStream(w http.ResponseWriter, r *http.Request) {
 	// Register client to streamer
 	outgoingChannel := streamer.registerClient(&w, r)
 	streamer.publish(getGameStatusResponse())
+	if isGameStarted {
+		streamer.publish(getStartGameResponse())
+	}
 	streamer.streamLoop(&w, outgoingChannel)
 }
 
