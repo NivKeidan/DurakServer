@@ -1,31 +1,30 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 )
 
 type SSEStreamer struct {
 	// Events are pushed to this channel by the main events-gathering routine
-	Notifier chan []byte
+	Notifier chan JSONResponseData
 
 	// New client connections
-	newClients chan chan []byte
+	newClients chan chan JSONResponseData
 
 	// Closed client connections
-	closingClients chan chan []byte
+	closingClients chan chan JSONResponseData
 
 	// Client connections registry
-	clients map[chan []byte]bool
+	clients map[chan JSONResponseData]bool
 }
 
-func NewStreamer() (streamer *SSEStreamer) {
+func NewSSEStreamer() (streamer *SSEStreamer) {
 	streamer = &SSEStreamer{
-		Notifier:       make(chan []byte, 1),
-		newClients:     make(chan chan []byte),
-		closingClients: make(chan chan []byte),
-		clients:        make(map[chan []byte]bool),
+		Notifier:       make(chan JSONResponseData),
+		newClients:     make(chan chan JSONResponseData),
+		closingClients: make(chan chan JSONResponseData),
+		clients:        make(map[chan JSONResponseData]bool),
 	}
 
 	go streamer.listen()
@@ -33,12 +32,12 @@ func NewStreamer() (streamer *SSEStreamer) {
 	return
 }
 
-func (this *SSEStreamer) registerClient(w *http.ResponseWriter, r *http.Request) chan []byte {
+func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan JSONResponseData {
 
 	this.addHeaders(w)
 
 	// New client channels
-	messageChan := make(chan []byte)
+	messageChan := make(chan JSONResponseData)
 	this.newClients <- messageChan
 
 	// Handle client-side disconnection
@@ -46,7 +45,6 @@ func (this *SSEStreamer) registerClient(w *http.ResponseWriter, r *http.Request)
 
 	go func() {
 		<-ctx.Done()
-		fmt.Println("Client closed connection")
 		this.removeClient(messageChan)
 	}()
 
@@ -55,7 +53,7 @@ func (this *SSEStreamer) registerClient(w *http.ResponseWriter, r *http.Request)
 
 }
 
-func (this *SSEStreamer) streamLoop(w *http.ResponseWriter, messageChan chan []byte) {
+func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan JSONResponseData) {
 
 	flusher, ok := (*w).(http.Flusher)
 
@@ -70,7 +68,7 @@ func (this *SSEStreamer) streamLoop(w *http.ResponseWriter, messageChan chan []b
 	for {
 		// Write to the ResponseWriter
 		// Server Sent Events compatible
-		if _, err := fmt.Fprintf(*w, "%s", <-messageChan); err != nil {
+		if _, err := fmt.Fprintf(*w, "%s", convertToString(<-messageChan)); err != nil {
 			http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
 			return
 		}
@@ -105,16 +103,9 @@ func (this *SSEStreamer) listen() {
 	}
 }
 
-func (this *SSEStreamer) publish(respData JSONResponseData) {
+func (this *SSEStreamer) Publish(respData JSONResponseData) {
 
-	body, err := createStreamData(respData)
-	if err != nil {
-		fmt.Printf("cant get stream data: %s\n", err)
-	}
-
-	body = "event:" + getEventName(&respData) + "\ndata:" + body + "\n\n"
-
-	this.Notifier <- []byte(body)
+	this.Notifier <- respData
 
 }
 
@@ -125,41 +116,6 @@ func (this *SSEStreamer) addHeaders(writer *http.ResponseWriter) {
 
 }
 
-func (this *SSEStreamer) removeClient(msgChan chan []byte) {
+func (this *SSEStreamer) removeClient(msgChan chan JSONResponseData) {
 	this.closingClients <- msgChan
-}
-
-func createStreamData(jsonObj JSONResponseData) (string, error) {
-
-	js, err := json.Marshal(jsonObj)
-	if err != nil {
-		return "", err
-	}
-	str := string(js) + "\n\n"
-	return str, nil
-}
-
-func getEventName(obj *JSONResponseData) string {
-	if _, ok := (*obj).(gameStatusResponse); ok {
-		return "gamecreated"
-	}
-
-	if _, ok := (*obj).(startGameResponse); ok {
-		return "gamestarted"
-	}
-
-	if _, ok := (*obj).(gameRestartResponse); ok {
-		return "gamerestarted"
-	}
-
-
-	if _, ok := (*obj).(gameUpdateResponse); ok {
-		return "gameupdated"
-	}
-
-	if _, ok := (*obj).(turnUpdateResponse); ok {
-		return "gameupdated"
-	}
-
-	return ""
 }
