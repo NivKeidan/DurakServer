@@ -25,6 +25,10 @@ type gameUpdateResponse struct {
 	LosingPlayerName     string                  `json:"losingPlayerName"`
 }
 
+type gameStreamConnected struct {
+	connected bool
+}
+
 type startGameResponse struct {
 	PlayerCards          map[string][]*game.Card `json:"playerCards"`
 	KozerCard            *game.Card              `json:"kozerCard"`
@@ -49,4 +53,43 @@ type gameRestartResponse struct {
 type playerJoinedResponse struct {
 	PlayerName string `json:"playerName"`
 	IdCode string `json:"idCode"`
+}
+
+// Customize ability for single player clients
+
+type CustomizableJSONResponseData interface {
+	GetPlayerCards() map[string][]*game.Card
+	SetPlayerCards(m *map[string][]*game.Card)
+}
+
+func (this *turnUpdateResponse) GetPlayerCards() map[string][]*game.Card {
+	return this.PlayerCards
+}
+
+func (this *turnUpdateResponse) SetPlayerCards(m *map[string][]*game.Card)  {
+	this.PlayerCards = *m
+}
+
+func (this *gameUpdateResponse) GetPlayerCards() map[string][]*game.Card {
+	return this.PlayerCards
+}
+
+func (this *gameUpdateResponse) SetPlayerCards(m *map[string][]*game.Card)  {
+	this.PlayerCards = *m
+}
+
+func (this *startGameResponse) GetPlayerCards() map[string][]*game.Card {
+	return this.PlayerCards
+}
+
+func (this *startGameResponse) SetPlayerCards(m *map[string][]*game.Card)  {
+	this.PlayerCards = *m
+}
+
+func (this *gameRestartResponse) GetPlayerCards() map[string][]*game.Card {
+	return this.PlayerCards
+}
+
+func (this *gameRestartResponse) SetPlayerCards(m *map[string][]*game.Card)  {
+	this.PlayerCards = *m
 }

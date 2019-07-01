@@ -5,10 +5,10 @@ import (
 	"DurakGo/game"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
 var playerNames []string
@@ -16,12 +16,17 @@ var currentGame *game.Game
 var isGameCreated = false
 var isGameStarted = false
 var numOfPlayers int
-var streamer = NewStreamer()
+var appStreamer = NewAppStreamer()
+var gameStreamer = NewGameStreamer()
+var clientIdentification map[string]map[string]bool
+
 
 // External API
 
 func InitServer() {
-	http.HandleFunc("/appStream", registerToStream)
+	rand.Seed(time.Now().UTC().UnixNano())
+	http.HandleFunc("/appStream", registerToAppStream)
+	http.HandleFunc("/gameStream", registerToGameStream)
 	http.HandleFunc("/createGame", createGame)
 	http.HandleFunc("/joinGame", joinGame)
 	http.HandleFunc("/leaveGame", leaveGame)
@@ -36,20 +41,65 @@ func InitServer() {
 
 // API
 
-func registerToStream(w http.ResponseWriter, r *http.Request) {
+func registerToAppStream(w http.ResponseWriter, r *http.Request) {
+
 	// Validate request headers
 	allowedMethods := []string{"GET"}
 	if err := validateRequest(&w, r, allowedMethods); err != nil {
 		return
 	}
 
-	// Register client to streamer
-	outgoingChannel := streamer.registerClient(&w, r)
-	streamer.publish(getGameStatusResponse())
+	// Register client to appStreamer
+	outgoingChannel := appStreamer.RegisterClient(&w, r)
+	appStreamer.Publish(getGameStatusResponse())
 	if isGameStarted {
-		streamer.publish(getStartGameResponse())
+		appStreamer.Publish(getStartGameResponse())
 	}
-	streamer.streamLoop(&w, outgoingChannel)
+	appStreamer.StreamLoop(&w, outgoingChannel)
+}
+
+func registerToGameStream(w http.ResponseWriter, r *http.Request) {
+	// Validate request headers
+	allowedMethods := []string{"GET"}
+	if err := validateRequest(&w, r, allowedMethods); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
+
+	// Extract ID and player name from URL
+	keys, ok := r.URL.Query()["id"]
+	if !ok {
+		http.Error(w, createErrorJson("could not get unique identifier"), 400)
+		return
+	}
+	key := keys[0]
+
+	names, ok := r.URL.Query()["name"]
+	if !ok {
+		http.Error(w, createErrorJson("could not get unique identifier"), 400)
+		return
+	}
+	playerName := names[0]
+
+	// Validate player name exists in players
+
+	if !stringutil.IsStringInSlice(playerNames, playerName) {
+		http.Error(w, createErrorJson("player name does not exist"), 400)
+		return
+	}
+
+	// Check that ID exists
+	if err := validateClientIdentification(playerName, key); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
+
+	// Open stream and create connection to player
+
+	// Register client to appStreamer
+	outgoingChannel := gameStreamer.RegisterClient(&w, r)
+	gameStreamer.Publish(getGameStreamConnectedResponse())
+	gameStreamer.StreamLoop(&w, outgoingChannel, customizeDataPerPlayer(playerName))
 }
 
 func createGame(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +127,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handleCreateGame()
-	streamer.publish(getGameStatusResponse())
+	appStreamer.Publish(getGameStatusResponse())
 
 	// Join game
 
@@ -86,18 +136,19 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlePlayerJoin(playerName)
+	uniquePlayerCode := createPlayerIdentificationString()
+
+	handlePlayerJoin(playerName, uniquePlayerCode)
 
 	if isGameStarted {
-		streamer.publish(getStartGameResponse())
+		appStreamer.Publish(getStartGameResponse())
 	}
 
 	// Handle response
 
-	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName, uniquePlayerCode), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
-	fmt.Println("New game created")
 }
 
 func joinGame(w http.ResponseWriter, r *http.Request) {
@@ -125,19 +176,20 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlePlayerJoin(playerName)
+	uniquePlayerCode := createPlayerIdentificationString()
 
-	streamer.publish(getGameStatusResponse())
+	handlePlayerJoin(playerName, uniquePlayerCode)
+
+	appStreamer.Publish(getGameStatusResponse())
 	if isGameStarted {
-		streamer.publish(getStartGameResponse())
+		appStreamer.Publish(getStartGameResponse())
 	}
 
 	// Handle response
-	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName, uniquePlayerCode), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
 
-	fmt.Printf("%v has joined the game\n", playerName)
 }
 
 func leaveGame(w http.ResponseWriter, r *http.Request) {
@@ -178,18 +230,16 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 
 	// Un-create game if required
 	if len(playerNames) == 0 {
-		fmt.Printf("Game was cancelled\n")
 		isGameCreated = false
 	}
 
-	streamer.publish(getGameStatusResponse())
+	appStreamer.Publish(getGameStatusResponse())
 
 	// Handle response
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 	}
 
-	fmt.Printf("%v has left the game\n", playerName)
 }
 
 func isNameValid(name string) bool {
@@ -240,7 +290,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	streamer.publish(getUpdateTurnResponse())
+	appStreamer.Publish(getUpdateTurnResponse())
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -295,7 +345,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	streamer.publish(getUpdateTurnResponse())
+	appStreamer.Publish(getUpdateTurnResponse())
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -318,7 +368,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	streamer.publish(getUpdateGameResponse())
+	appStreamer.Publish(getUpdateGameResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -344,7 +394,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	streamer.publish(getUpdateGameResponse())
+	appStreamer.Publish(getUpdateGameResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -366,7 +416,7 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 	startGame()
 
 	// Handle response
-	streamer.publish(getGameRestartResponse())
+	appStreamer.Publish(getGameRestartResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -415,6 +465,27 @@ func validateCreateGame(requestData createGameRequestObject) error {
 	if requestData.NumOfPlayers < 2 || requestData.NumOfPlayers > 4 {
 		return errors.New("can not start game with less than 2 playerNames or more than four playerNames")
 	}
+	return nil
+}
+
+func validateClientIdentification(playerName string, code string) error {
+
+	v, ok := clientIdentification[playerName]
+	if !ok {
+		return errors.New("no such player name registered")
+	}
+
+	v2, ok := v[code]
+	if !ok {
+		return errors.New("identification string is incorrect")
+		// TODO Add disconnecting client? (usually means trying to hack or something wrong occurred)
+	}
+	if v2 {
+		return errors.New("client already registered to stream")
+		// TODO Add disconnecting client? (usually means trying to hack or something wrong occurred)
+	}
+
+	clientIdentification[playerName][code] = true
 	return nil
 }
 
@@ -482,10 +553,18 @@ func getGameRestartResponse() JSONResponseData {
 	return resp
 }
 
-func getPlayerJoinedResponse(playerName string) JSONResponseData {
+func getPlayerJoinedResponse(playerName string, code string) JSONResponseData {
 	resp := playerJoinedResponse{
 		PlayerName: playerName,
-		IdCode: createPlayerIdentificationString(),
+		IdCode: code,
+	}
+
+	return resp
+}
+
+func getGameStreamConnectedResponse() JSONResponseData {
+	resp := gameStreamConnected{
+		connected: true,
 	}
 
 	return resp
@@ -553,7 +632,7 @@ func addCorsHeaders(w http.ResponseWriter) {
 }
 
 func createPlayerIdentificationString() string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*~"
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	const length = 10
 	b := make([]byte, length)
 	for i := range b {
@@ -561,7 +640,6 @@ func createPlayerIdentificationString() string {
 	}
 	return string(b)
 }
-
 
 // Game Logic
 
@@ -577,7 +655,7 @@ func startGame() {
 	isGameStarted = true
 }
 
-func handlePlayerJoin(playerName string) {
+func handlePlayerJoin(playerName string, playerUniqueCode string) {
 	// Add player
 	if len(playerNames) < numOfPlayers {
 		playerNames = append(playerNames, playerName)
@@ -587,9 +665,33 @@ func handlePlayerJoin(playerName string) {
 	if len(playerNames) == numOfPlayers {
 		startGame()
 	}
+
+	clientIdentification[playerName] = make(map[string]bool)
+	clientIdentification[playerName][playerUniqueCode] = false
 }
 
 func handleCreateGame() {
 	playerNames = make([]string, 0)
+	clientIdentification = make(map[string]map[string]bool)
 	isGameCreated = true
+}
+
+func customizeDataPerPlayer(playerName string) func(respData JSONResponseData) JSONResponseData {
+
+	return func(respData JSONResponseData) JSONResponseData {
+		switch val := respData.(type) {
+		case CustomizableJSONResponseData:
+			fakePlayerCards := make(map[string][]*game.Card)
+			for k, v := range val.GetPlayerCards() {
+				if k != playerName {
+					fakePlayerCards[k] = make([]*game.Card, len(v))
+				} else {
+					fakePlayerCards[k] = v
+				}
+			}
+			val.SetPlayerCards(&fakePlayerCards)
+			return val.(JSONResponseData)
+		}
+		return respData
+	}
 }
