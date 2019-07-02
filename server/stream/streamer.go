@@ -1,30 +1,31 @@
-package server
+package stream
 
 import (
+	"DurakGo/server"
 	"fmt"
 	"net/http"
 )
 
 type SSEStreamer struct {
 	// Events are pushed to this channel by the main events-gathering routine
-	Notifier chan JSONResponseData
+	Notifier chan server.JSONResponseData
 
 	// New client connections
-	newClients chan chan JSONResponseData
+	newClients chan chan server.JSONResponseData
 
 	// Closed client connections
-	closingClients chan chan JSONResponseData
+	closingClients chan chan server.JSONResponseData
 
 	// Client connections registry
-	clients map[chan JSONResponseData]bool
+	clients map[chan server.JSONResponseData]bool
 }
 
 func NewSSEStreamer() (streamer *SSEStreamer) {
 	streamer = &SSEStreamer{
-		Notifier:       make(chan JSONResponseData),
-		newClients:     make(chan chan JSONResponseData),
-		closingClients: make(chan chan JSONResponseData),
-		clients:        make(map[chan JSONResponseData]bool),
+		Notifier:       make(chan server.JSONResponseData),
+		newClients:     make(chan chan server.JSONResponseData),
+		closingClients: make(chan chan server.JSONResponseData),
+		clients:        make(map[chan server.JSONResponseData]bool),
 	}
 
 	go streamer.listen()
@@ -32,12 +33,12 @@ func NewSSEStreamer() (streamer *SSEStreamer) {
 	return
 }
 
-func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan JSONResponseData {
+func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan server.JSONResponseData {
 
 	this.addHeaders(w)
 
 	// New client channels
-	messageChan := make(chan JSONResponseData)
+	messageChan := make(chan server.JSONResponseData)
 	this.newClients <- messageChan
 
 	// Handle client-side disconnection
@@ -53,7 +54,7 @@ func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request)
 
 }
 
-func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan JSONResponseData) {
+func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan server.JSONResponseData) {
 
 	flusher, ok := (*w).(http.Flusher)
 
@@ -103,7 +104,7 @@ func (this *SSEStreamer) listen() {
 	}
 }
 
-func (this *SSEStreamer) Publish(respData JSONResponseData) {
+func (this *SSEStreamer) Publish(respData server.JSONResponseData) {
 
 	this.Notifier <- respData
 
@@ -116,6 +117,6 @@ func (this *SSEStreamer) addHeaders(writer *http.ResponseWriter) {
 
 }
 
-func (this *SSEStreamer) removeClient(msgChan chan JSONResponseData) {
+func (this *SSEStreamer) removeClient(msgChan chan server.JSONResponseData) {
 	this.closingClients <- msgChan
 }

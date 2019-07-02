@@ -3,8 +3,11 @@ package server
 import (
 	"CheekyCommons/stringutil"
 	"DurakGo/game"
+	"DurakGo/server/stream"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/getlantern/deepcopy"
 	"log"
 	"math/rand"
 	"net/http"
@@ -16,8 +19,8 @@ var currentGame *game.Game
 var isGameCreated = false
 var isGameStarted = false
 var numOfPlayers int
-var appStreamer = NewAppStreamer()
-var gameStreamer = NewGameStreamer()
+var appStreamer = stream.NewAppStreamer()
+var gameStreamer = stream.NewGameStreamer()
 var clientIdentification map[string]map[string]bool
 
 
@@ -502,7 +505,7 @@ func validateClientIdentification(playerName string, code string) error {
 // SSE
 
 func getUpdateGameResponse() JSONResponseData {
-	resp := gameUpdateResponse{
+	resp := &gameUpdateResponse{
 		PlayerCards:          currentGame.GetPlayersCardsMap(),
 		CardsOnTable:         currentGame.GetCardsOnBoard(),
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
@@ -517,7 +520,7 @@ func getUpdateGameResponse() JSONResponseData {
 }
 
 func getUpdateTurnResponse() JSONResponseData {
-	resp := turnUpdateResponse{
+	resp := &turnUpdateResponse{
 		PlayerCards: currentGame.GetPlayersCardsMap(),
 		CardsOnTable: currentGame.GetCardsOnBoard(),
 	}
@@ -526,7 +529,7 @@ func getUpdateTurnResponse() JSONResponseData {
 }
 
 func getStartGameResponse() JSONResponseData {
-	resp := startGameResponse {
+	resp := &startGameResponse {
 		PlayerCards: currentGame.GetPlayersCardsMap(),
 		KozerCard: currentGame.KozerCard,
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
@@ -540,7 +543,7 @@ func getStartGameResponse() JSONResponseData {
 }
 
 func getGameStatusResponse() JSONResponseData {
-	resp := gameStatusResponse {
+	resp := &gameStatusResponse {
 		IsGameRunning: isGameStarted,
 		IsGameCreated: isGameCreated,
 	}
@@ -549,7 +552,7 @@ func getGameStatusResponse() JSONResponseData {
 }
 
 func getGameRestartResponse() JSONResponseData {
-	resp := gameRestartResponse{
+	resp := &gameRestartResponse{
 		PlayerCards:          currentGame.GetPlayersCardsMap(),
 		KozerCard:            currentGame.KozerCard,
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
@@ -564,7 +567,7 @@ func getGameRestartResponse() JSONResponseData {
 }
 
 func getPlayerJoinedResponse(playerName string, code string) JSONResponseData {
-	resp := playerJoinedResponse{
+	resp := &playerJoinedResponse{
 		PlayerName: playerName,
 		IdCode: code,
 	}
@@ -678,22 +681,48 @@ func handleCreateGame() {
 	isGameCreated = true
 }
 
-func customizeDataPerPlayer(playerName string) func(respData JSONResponseData) JSONResponseData {
+func getCustomizedPlayerCards(respData CustomizableJSONResponseData, playerName string) *map[string][]*game.Card {
+	fakePlayerCards := make(map[string][]*game.Card)
+
+	for k, v := range respData.GetPlayerCards() {
+		if k != playerName {
+			fakePlayerCards[k] = make([]*game.Card, len(v))
+		} else {
+			fakePlayerCards[k] = v
+		}
+	}
+	return &fakePlayerCards
+}
+
+func helperFunc(originalObj CustomizableJSONResponseData, copiedObj CustomizableJSONResponseData, playerName string) CustomizableJSONResponseData {
+	fakePlayerCards := getCustomizedPlayerCards(originalObj, playerName)
+	if err := deepcopy.Copy(copiedObj, originalObj); err != nil {
+		// TODO Handle this error better?
+		fmt.Printf("ERROR OCCURRED: %v\n", err)
+		return nil
+	}
+	copiedObj.SetPlayerCards(fakePlayerCards)
+	return copiedObj
+}
+
+func customizeDataPerPlayer(playerName string) func(JSONResponseData) JSONResponseData {
 
 	return func(respData JSONResponseData) JSONResponseData {
 		switch val := respData.(type) {
-		case CustomizableJSONResponseData:
-			fakePlayerCards := make(map[string][]*game.Card)
-			for k, v := range val.GetPlayerCards() {
-				if k != playerName {
-					fakePlayerCards[k] = make([]*game.Card, len(v))
-				} else {
-					fakePlayerCards[k] = v
-				}
-			}
-			val.SetPlayerCards(&fakePlayerCards)
-			return val.(JSONResponseData)
+		case *startGameResponse:
+			copiedObj := &startGameResponse{}
+			return helperFunc(val, copiedObj, playerName)
+		case *gameRestartResponse:
+			copiedObj := &gameRestartResponse{}
+			return helperFunc(val, copiedObj, playerName)
+		case *gameUpdateResponse:
+			copiedObj := &gameUpdateResponse{}
+			return helperFunc(val, copiedObj, playerName)
+		case *turnUpdateResponse:
+			copiedObj := &turnUpdateResponse{}
+			return helperFunc(val, copiedObj, playerName)
+		default:
+			return respData
 		}
-		return respData
 	}
 }

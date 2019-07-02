@@ -1,12 +1,13 @@
-package server
+package stream
 
 import (
+	"DurakGo/server"
 	"fmt"
 	"net/http"
 )
 
 type GameStreamer struct {
-	streamer SSEStreamer
+	streamer   SSEStreamer
 	playerName string
 }
 
@@ -18,12 +19,12 @@ func NewGameStreamer() (gameStreamer *GameStreamer) {
 	return gameStreamer
 }
 
-func (this *GameStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan JSONResponseData {
-	return this.streamer.RegisterClient(w, r)
+func (this *GameStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan server.JSONResponseData {
+	return RegisterClient(w, r)
 }
 
-func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan JSONResponseData,
-	customizeDataFunc func(JSONResponseData) JSONResponseData) {
+func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan server.JSONResponseData,
+	customizeDataFunc func(server.JSONResponseData) server.JSONResponseData) {
 	flusher, ok := (*w).(http.Flusher)
 
 	if !ok {
@@ -32,7 +33,7 @@ func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan JS
 	}
 
 	// Make sure to close connection
-	defer this.streamer.removeClient(messageChan)
+	defer removeClient(messageChan)
 
 	for {
 		// Write to the ResponseWriter
@@ -50,8 +51,8 @@ func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan JS
 	}
 }
 
-func (this *GameStreamer) Publish(respData JSONResponseData) {
+func (this *GameStreamer) Publish(respData server.JSONResponseData) {
 
-	this.streamer.Publish(respData)
+	Publish(respData)
 
 }
