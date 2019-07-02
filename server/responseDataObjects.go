@@ -25,10 +25,6 @@ type gameUpdateResponse struct {
 	LosingPlayerName     string                  `json:"losingPlayerName"`
 }
 
-type gameStreamConnected struct {
-	connected bool
-}
-
 type startGameResponse struct {
 	PlayerCards          map[string][]*game.Card `json:"playerCards"`
 	KozerCard            *game.Card              `json:"kozerCard"`
