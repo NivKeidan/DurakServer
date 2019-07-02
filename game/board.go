@@ -119,5 +119,5 @@ func (this *Board) isEmpty() bool {
 func (this *Board) isCardLimitReached(numOfCardsInHand int) bool {
 	// Checks if over total card limit on board, or if player has enough cards to defend
 
-	return len(this.cardsOnBoard) >= MAX_CARDS_PER_ATTACK || len(this.GetUnAnsweredCard()) >= numOfCardsInHand
+	return len(this.cardsOnBoard) >= MaxCardsPerAttack || len(this.GetUnAnsweredCard()) >= numOfCardsInHand
 }

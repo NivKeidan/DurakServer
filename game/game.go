@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-const CARDS_PER_PLAYER = 6
-const MAX_CARDS_PER_ATTACK = 6
+const CardsPerPlayer = 6
+const MaxCardsPerAttack = 6
 
 type Game struct {
 	board           *Board
@@ -183,7 +183,7 @@ func (this *Game) GetDefendingPlayer() *Player {
 // Internal methods
 
 func (this *Game) dealCards() {
-	for i := 1; i <= CARDS_PER_PLAYER; i++ {
+	for i := 1; i <= CardsPerPlayer; i++ {
 		for _, player := range this.players {
 			player.TakeCards(this.deck.GetNextCard())
 		}
@@ -255,7 +255,7 @@ func (this *Game) getPlayerFillingUpFirst() *Player {
 
 func (this *Game) fillUpCardsForPlayer(player *Player) {
 
-	for CARDS_PER_PLAYER - player.GetNumOfCardsInHand() > 0 {
+	for CardsPerPlayer- player.GetNumOfCardsInHand() > 0 {
 		if this.deck.GetNumOfCardsLeft() == 0 {
 			return
 		}
