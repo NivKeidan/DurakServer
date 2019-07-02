@@ -29,7 +29,7 @@ func createStreamData(jsonObj JSONResponseData) (string, error) {
 
 func getEventName(obj *JSONResponseData) string {
 	if _, ok := (*obj).(gameStatusResponse); ok {
-		return "gamecreated"
+		return "gamestatus"
 	}
 
 	if _, ok := (*obj).(startGameResponse); ok {

@@ -98,7 +98,9 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 
 	// Register client to appStreamer
 	outgoingChannel := gameStreamer.RegisterClient(&w, r)
-	gameStreamer.Publish(getGameStreamConnectedResponse())
+	if isGameStarted {
+		gameStreamer.Publish(getStartGameResponse())
+	}
 	gameStreamer.StreamLoop(&w, outgoingChannel, customizeDataPerPlayer(playerName))
 }
 
@@ -142,6 +144,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	if isGameStarted {
 		appStreamer.Publish(getStartGameResponse())
+		gameStreamer.Publish(getStartGameResponse())
 	}
 
 	// Handle response
@@ -183,6 +186,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	appStreamer.Publish(getGameStatusResponse())
 	if isGameStarted {
 		appStreamer.Publish(getStartGameResponse())
+		gameStreamer.Publish(getStartGameResponse())
 	}
 
 	// Handle response
@@ -234,6 +238,7 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	appStreamer.Publish(getGameStatusResponse())
+	gameStreamer.Publish(getGameStatusResponse())
 
 	// Handle response
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
@@ -291,6 +296,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 	// Handle response
 
 	appStreamer.Publish(getUpdateTurnResponse())
+	gameStreamer.Publish(getUpdateTurnResponse())
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -346,6 +352,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	// Handle response
 
 	appStreamer.Publish(getUpdateTurnResponse())
+	gameStreamer.Publish(getUpdateTurnResponse())
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -369,6 +376,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 	// Handle response
 
 	appStreamer.Publish(getUpdateGameResponse())
+	gameStreamer.Publish(getUpdateGameResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -395,6 +403,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	// Handle response
 
 	appStreamer.Publish(getUpdateGameResponse())
+	gameStreamer.Publish(getUpdateGameResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -417,6 +426,7 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 	appStreamer.Publish(getGameRestartResponse())
+	gameStreamer.Publish(getGameRestartResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -562,14 +572,6 @@ func getPlayerJoinedResponse(playerName string, code string) JSONResponseData {
 	return resp
 }
 
-func getGameStreamConnectedResponse() JSONResponseData {
-	resp := gameStreamConnected{
-		connected: true,
-	}
-
-	return resp
-}
-
 // Request/Response Related
 
 func extractJSONData(t JSONRequestPayload, r *http.Request) error {
@@ -661,13 +663,13 @@ func handlePlayerJoin(playerName string, playerUniqueCode string) {
 		playerNames = append(playerNames, playerName)
 	}
 
+	clientIdentification[playerName] = make(map[string]bool)
+	clientIdentification[playerName][playerUniqueCode] = false
+
 	// Start game if required
 	if len(playerNames) == numOfPlayers {
 		startGame()
 	}
-
-	clientIdentification[playerName] = make(map[string]bool)
-	clientIdentification[playerName][playerUniqueCode] = false
 }
 
 func handleCreateGame() {
