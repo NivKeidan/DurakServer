@@ -1,20 +1,20 @@
-package server
+package httpPayloadObjects
 
 import "DurakGo/game"
 
 type JSONResponseData interface {}
 
-type gameStatusResponse struct {
+type GameStatusResponse struct {
 	IsGameRunning bool `json:"isGameRunning"`
 	IsGameCreated bool `json:"isGameCreated"`
 }
 
-type turnUpdateResponse struct {
+type TurnUpdateResponse struct {
 	PlayerCards map[string][]*game.Card `json:"playerCards"`
 	CardsOnTable []*game.CardOnBoard `json:"cardsOnTable"`
 }
 
-type gameUpdateResponse struct {
+type GameUpdateResponse struct {
 	PlayerCards          map[string][]*game.Card `json:"playerCards"`
 	CardsOnTable         []*game.CardOnBoard     `json:"cardsOnTable"`
 	NumOfCardsLeftInDeck int                     `json:"numOfCardsLeftInDeck"`
@@ -25,7 +25,7 @@ type gameUpdateResponse struct {
 	LosingPlayerName     string                  `json:"losingPlayerName"`
 }
 
-type startGameResponse struct {
+type StartGameResponse struct {
 	PlayerCards          map[string][]*game.Card `json:"playerCards"`
 	KozerCard            *game.Card              `json:"kozerCard"`
 	NumOfCardsLeftInDeck int                     `json:"numOfCardsLeftInDeck"`
@@ -35,7 +35,7 @@ type startGameResponse struct {
 	Players				 []string				 `json:"players"`
 }
 
-type gameRestartResponse struct {
+type GameRestartResponse struct {
 	PlayerCards          map[string][]*game.Card `json:"playerCards"`
 	KozerCard            *game.Card              `json:"kozerCard"`
 	CardsOnTable         []*game.CardOnBoard     `json:"cardsOnTable"`
@@ -46,7 +46,7 @@ type gameRestartResponse struct {
 	IsDraw               bool                    `json:"isDraw"`
 }
 
-type playerJoinedResponse struct {
+type PlayerJoinedResponse struct {
 	PlayerName string `json:"playerName"`
 	IdCode string `json:"idCode"`
 }
@@ -58,34 +58,34 @@ type CustomizableJSONResponseData interface {
 	SetPlayerCards(m *map[string][]*game.Card)
 }
 
-func (this *turnUpdateResponse) GetPlayerCards() map[string][]*game.Card {
+func (this *TurnUpdateResponse) GetPlayerCards() map[string][]*game.Card {
 	return this.PlayerCards
 }
 
-func (this *turnUpdateResponse) SetPlayerCards(m *map[string][]*game.Card)  {
+func (this *TurnUpdateResponse) SetPlayerCards(m *map[string][]*game.Card)  {
 	this.PlayerCards = *m
 }
 
-func (this *gameUpdateResponse) GetPlayerCards() map[string][]*game.Card {
+func (this *GameUpdateResponse) GetPlayerCards() map[string][]*game.Card {
 	return this.PlayerCards
 }
 
-func (this *gameUpdateResponse) SetPlayerCards(m *map[string][]*game.Card)  {
+func (this *GameUpdateResponse) SetPlayerCards(m *map[string][]*game.Card)  {
 	this.PlayerCards = *m
 }
 
-func (this *startGameResponse) GetPlayerCards() map[string][]*game.Card {
+func (this *StartGameResponse) GetPlayerCards() map[string][]*game.Card {
 	return this.PlayerCards
 }
 
-func (this *startGameResponse) SetPlayerCards(m *map[string][]*game.Card)  {
+func (this *StartGameResponse) SetPlayerCards(m *map[string][]*game.Card)  {
 	this.PlayerCards = *m
 }
 
-func (this *gameRestartResponse) GetPlayerCards() map[string][]*game.Card {
+func (this *GameRestartResponse) GetPlayerCards() map[string][]*game.Card {
 	return this.PlayerCards
 }
 
-func (this *gameRestartResponse) SetPlayerCards(m *map[string][]*game.Card)  {
+func (this *GameRestartResponse) SetPlayerCards(m *map[string][]*game.Card)  {
 	this.PlayerCards = *m
 }

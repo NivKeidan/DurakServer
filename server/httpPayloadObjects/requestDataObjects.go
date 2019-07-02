@@ -1,26 +1,26 @@
-package server
+package httpPayloadObjects
 
 type JSONRequestPayload interface {}
 
-type createGameRequestObject struct {
+type CreateGameRequestObject struct {
 	NumOfPlayers int `json:"numOfPlayers"`
 	PlayerName string `json:"playerName"`
 }
 
-type joinGameRequestObject struct {
+type JoinGameRequestObject struct {
 	PlayerName string `json:"playerName"`
 }
 
-type leaveGameRequestObject struct {
+type LeaveGameRequestObject struct {
 	PlayerName string `json:"playerName"`
 }
 
-type attackRequestObject struct {
+type AttackRequestObject struct {
 	AttackingPlayerName string `json:"attackingPlayerName"`
 	AttackingCardCode string `json:"attackingCardCode"`
 }
 
-type defenseRequestObject struct {
+type DefenseRequestObject struct {
 	DefendingPlayerName string `json:"defendingPlayerName"`
 	DefendingCardCode string `json:"defendingCardCode"`
 	AttackingCardCode string `json:"attackingCardCode"`

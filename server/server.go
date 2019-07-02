@@ -3,6 +3,7 @@ package server
 import (
 	"CheekyCommons/stringutil"
 	"DurakGo/game"
+	"DurakGo/server/httpPayloadObjects"
 	"DurakGo/server/stream"
 	"encoding/json"
 	"errors"
@@ -115,7 +116,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse request
-	requestData := createGameRequestObject{}
+	requestData := httpPayloadObjects.CreateGameRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
@@ -167,7 +168,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 
 	// Parse request
 
-	requestData := joinGameRequestObject{}
+	requestData := httpPayloadObjects.JoinGameRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
@@ -208,7 +209,7 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 
 	// Parse request
 
-	requestData := leaveGameRequestObject{}
+	requestData := httpPayloadObjects.LeaveGameRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
@@ -267,7 +268,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 
 
-	requestData := attackRequestObject{}
+	requestData := httpPayloadObjects.AttackRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
@@ -317,7 +318,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 
 
-	requestData := defenseRequestObject{}
+	requestData := httpPayloadObjects.DefenseRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
@@ -474,7 +475,7 @@ func validateJoinGame(playerName string) error {
 	return nil
 }
 
-func validateCreateGame(requestData createGameRequestObject) error {
+func validateCreateGame(requestData httpPayloadObjects.CreateGameRequestObject) error {
 	if requestData.NumOfPlayers < 2 || requestData.NumOfPlayers > 4 {
 		return errors.New("can not start game with less than 2 playerNames or more than four playerNames")
 	}
@@ -504,8 +505,8 @@ func validateClientIdentification(playerName string, code string) error {
 
 // SSE
 
-func getUpdateGameResponse() JSONResponseData {
-	resp := &gameUpdateResponse{
+func getUpdateGameResponse() httpPayloadObjects.JSONResponseData {
+	resp := &httpPayloadObjects.GameUpdateResponse{
 		PlayerCards:          currentGame.GetPlayersCardsMap(),
 		CardsOnTable:         currentGame.GetCardsOnBoard(),
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
@@ -519,8 +520,8 @@ func getUpdateGameResponse() JSONResponseData {
 	return resp
 }
 
-func getUpdateTurnResponse() JSONResponseData {
-	resp := &turnUpdateResponse{
+func getUpdateTurnResponse() httpPayloadObjects.JSONResponseData {
+	resp := &httpPayloadObjects.TurnUpdateResponse{
 		PlayerCards: currentGame.GetPlayersCardsMap(),
 		CardsOnTable: currentGame.GetCardsOnBoard(),
 	}
@@ -528,8 +529,8 @@ func getUpdateTurnResponse() JSONResponseData {
 	return resp
 }
 
-func getStartGameResponse() JSONResponseData {
-	resp := &startGameResponse {
+func getStartGameResponse() httpPayloadObjects.JSONResponseData {
+	resp := &httpPayloadObjects.StartGameResponse{
 		PlayerCards: currentGame.GetPlayersCardsMap(),
 		KozerCard: currentGame.KozerCard,
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
@@ -542,8 +543,8 @@ func getStartGameResponse() JSONResponseData {
 	return resp
 }
 
-func getGameStatusResponse() JSONResponseData {
-	resp := &gameStatusResponse {
+func getGameStatusResponse() httpPayloadObjects.JSONResponseData {
+	resp := &httpPayloadObjects.GameStatusResponse{
 		IsGameRunning: isGameStarted,
 		IsGameCreated: isGameCreated,
 	}
@@ -551,8 +552,8 @@ func getGameStatusResponse() JSONResponseData {
 	return resp
 }
 
-func getGameRestartResponse() JSONResponseData {
-	resp := &gameRestartResponse{
+func getGameRestartResponse() httpPayloadObjects.JSONResponseData {
+	resp := &httpPayloadObjects.GameRestartResponse{
 		PlayerCards:          currentGame.GetPlayersCardsMap(),
 		KozerCard:            currentGame.KozerCard,
 		NumOfCardsLeftInDeck: currentGame.GetNumOfCardsLeftInDeck(),
@@ -566,8 +567,8 @@ func getGameRestartResponse() JSONResponseData {
 	return resp
 }
 
-func getPlayerJoinedResponse(playerName string, code string) JSONResponseData {
-	resp := &playerJoinedResponse{
+func getPlayerJoinedResponse(playerName string, code string) httpPayloadObjects.JSONResponseData {
+	resp := &httpPayloadObjects.PlayerJoinedResponse{
 		PlayerName: playerName,
 		IdCode: code,
 	}
@@ -577,7 +578,7 @@ func getPlayerJoinedResponse(playerName string, code string) JSONResponseData {
 
 // Request/Response Related
 
-func extractJSONData(t JSONRequestPayload, r *http.Request) error {
+func extractJSONData(t httpPayloadObjects.JSONRequestPayload, r *http.Request) error {
 	// First argument is the object the data is extracted from
 	if err := json.NewDecoder(r.Body).Decode(t); err != nil {
 		return err
@@ -585,7 +586,7 @@ func extractJSONData(t JSONRequestPayload, r *http.Request) error {
 	return nil
 }
 
-func createSuccessJson() JSONResponseData {
+func createSuccessJson() httpPayloadObjects.JSONResponseData {
 	// Default HTTP JSON body error response
 
 	type errorResponse struct {
@@ -597,7 +598,7 @@ func createSuccessJson() JSONResponseData {
 	return resp
 }
 
-func integrateJSONResponse(resp JSONResponseData, w *http.ResponseWriter) error {
+func integrateJSONResponse(resp httpPayloadObjects.JSONResponseData, w *http.ResponseWriter) error {
 	// First argument is the object the data is put into
 
 	js, err := json.Marshal(resp)
@@ -681,7 +682,9 @@ func handleCreateGame() {
 	isGameCreated = true
 }
 
-func getCustomizedPlayerCards(respData CustomizableJSONResponseData, playerName string) *map[string][]*game.Card {
+func getCustomizedPlayerCards(respData httpPayloadObjects.CustomizableJSONResponseData,
+	playerName string) *map[string][]*game.Card {
+
 	fakePlayerCards := make(map[string][]*game.Card)
 
 	for k, v := range respData.GetPlayerCards() {
@@ -694,7 +697,10 @@ func getCustomizedPlayerCards(respData CustomizableJSONResponseData, playerName 
 	return &fakePlayerCards
 }
 
-func helperFunc(originalObj CustomizableJSONResponseData, copiedObj CustomizableJSONResponseData, playerName string) CustomizableJSONResponseData {
+func helperFunc(originalObj httpPayloadObjects.CustomizableJSONResponseData,
+	copiedObj httpPayloadObjects.CustomizableJSONResponseData,
+	playerName string) httpPayloadObjects.CustomizableJSONResponseData {
+
 	fakePlayerCards := getCustomizedPlayerCards(originalObj, playerName)
 	if err := deepcopy.Copy(copiedObj, originalObj); err != nil {
 		// TODO Handle this error better?
@@ -705,21 +711,21 @@ func helperFunc(originalObj CustomizableJSONResponseData, copiedObj Customizable
 	return copiedObj
 }
 
-func customizeDataPerPlayer(playerName string) func(JSONResponseData) JSONResponseData {
+func customizeDataPerPlayer(playerName string) func(httpPayloadObjects.JSONResponseData) httpPayloadObjects.JSONResponseData {
 
-	return func(respData JSONResponseData) JSONResponseData {
+	return func(respData httpPayloadObjects.JSONResponseData) httpPayloadObjects.JSONResponseData {
 		switch val := respData.(type) {
-		case *startGameResponse:
-			copiedObj := &startGameResponse{}
+		case *httpPayloadObjects.StartGameResponse:
+			copiedObj := &httpPayloadObjects.StartGameResponse{}
 			return helperFunc(val, copiedObj, playerName)
-		case *gameRestartResponse:
-			copiedObj := &gameRestartResponse{}
+		case *httpPayloadObjects.GameRestartResponse:
+			copiedObj := &httpPayloadObjects.GameRestartResponse{}
 			return helperFunc(val, copiedObj, playerName)
-		case *gameUpdateResponse:
-			copiedObj := &gameUpdateResponse{}
+		case *httpPayloadObjects.GameUpdateResponse:
+			copiedObj := &httpPayloadObjects.GameUpdateResponse{}
 			return helperFunc(val, copiedObj, playerName)
-		case *turnUpdateResponse:
-			copiedObj := &turnUpdateResponse{}
+		case *httpPayloadObjects.TurnUpdateResponse:
+			copiedObj := &httpPayloadObjects.TurnUpdateResponse{}
 			return helperFunc(val, copiedObj, playerName)
 		default:
 			return respData
