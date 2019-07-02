@@ -19,15 +19,15 @@ func GetKindCode(kind Kind) byte {
 	return kind[0]
 }
 
-func GetCardKindByCode(kindCode byte) (Kind, error) {
+func GetCardKindByCode(kindCode string) (Kind, error) {
 	switch kindCode {
-	case 'C':
+	case "C":
 		return Clubs, nil
-	case 'S':
+	case "S":
 		return Spades, nil
-	case 'D':
+	case "D":
 		return Diamonds, nil
-	case 'H':
+	case "H":
 		return Hearts, nil
 	default:
 		return "", fmt.Errorf("no such kind code: %v", kindCode)
