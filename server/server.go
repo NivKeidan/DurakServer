@@ -147,7 +147,6 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	handlePlayerJoin(playerName, uniquePlayerCode)
 
 	if isGameStarted {
-		appStreamer.Publish(getStartGameResponse())
 		gameStreamer.Publish(getStartGameResponse())
 	}
 
@@ -189,7 +188,6 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 
 	appStreamer.Publish(getGameStatusResponse())
 	if isGameStarted {
-		appStreamer.Publish(getStartGameResponse())
 		gameStreamer.Publish(getStartGameResponse())
 	}
 
@@ -299,7 +297,6 @@ func attack(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	appStreamer.Publish(getUpdateTurnResponse())
 	gameStreamer.Publish(getUpdateTurnResponse())
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
@@ -355,7 +352,6 @@ func defend(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	appStreamer.Publish(getUpdateTurnResponse())
 	gameStreamer.Publish(getUpdateTurnResponse())
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
@@ -379,7 +375,6 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	appStreamer.Publish(getUpdateGameResponse())
 	gameStreamer.Publish(getUpdateGameResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
@@ -406,7 +401,6 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	appStreamer.Publish(getUpdateGameResponse())
 	gameStreamer.Publish(getUpdateGameResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
@@ -429,7 +423,6 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 	startGame()
 
 	// Handle response
-	appStreamer.Publish(getGameRestartResponse())
 	gameStreamer.Publish(getGameRestartResponse())
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
