@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -250,8 +251,8 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func isNameValid(name string) bool {
-	// TODO Add name validations
-	return true
+	var IsLetter = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`).MatchString
+	return IsLetter(name)
 
 }
 
