@@ -58,6 +58,8 @@ func (this *Game) Attack(player *Player, card *Card) error {
 		return errors.New("card limit reached")
 	}
 
+	// TODO Move validations from board.AddAttackingCard to here
+
 	// Remove card from player
 	card, err := player.GetCard(card)
 	if err != nil {return err}
