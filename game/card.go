@@ -121,3 +121,22 @@ func (this *Card) canDefendCard(card *Card, kozerKind *Kind) bool {
 func (this *Card) isSameSuit(card *Card) bool {
 	return this.Kind == card.Kind
 }
+
+func (this *Card) String() string {
+	var valueString string
+
+	switch int(this.Value) {
+		case 11:
+			valueString = "Jack"
+		case 12:
+			valueString = "Queen"
+		case 13:
+			valueString = "King"
+		case 14:
+			valueString = "Ace"
+		default:
+			valueString = fmt.Sprint(this.Value)
+		}
+
+	return fmt.Sprintf("%s of %s", valueString, this.Kind)
+}
