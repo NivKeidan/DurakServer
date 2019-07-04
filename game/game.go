@@ -109,21 +109,6 @@ func (this *Game) MoveToBita() error {
 	return nil
 }
 
-func (this *Game) finalizeTurn(wasDefendedSuccessfully bool) {
-
-	// Removes cards from board, fills up players' hands
-
-	this.board.EmptyBoard()
-	this.fillUpCards()
-	if this.deck.GetNumOfCardsLeft() == 0 {
-		this.removePlayersThatFinished()
-	}
-
-	if !this.IsGameOver() {
-		this.setUpNextTurn(wasDefendedSuccessfully)
-	}
-}
-
 func (this *Game) HandlePlayerTakesCard() {
 
 	cards := this.board.GetAllCards()
@@ -182,7 +167,50 @@ func (this *Game) GetDefendingPlayer() *Player {
 	return this.defendingPlayer
 }
 
+func (this *Game) GetLosingPlayerName() string {
+	losingPlayer := this.GetLosingPlayer()
+	if losingPlayer == nil {
+		return ""
+	} else {
+		return losingPlayer.Name
+	}
+
+}
+
+func (this *Game) GetPlayersCardsMap() map[string][]*Card {
+	playerCards := make(map[string][]*Card)
+	for _, player := range this.players {
+		cards := player.GetAllCards()
+		playerCards[player.Name] = cards
+	}
+	return playerCards
+
+}
+
+func (this *Game) GetPlayerNamesArray() []string {
+	arr := make([]string, 0)
+	for _, player := range this.players {
+		arr = append(arr, player.Name)
+	}
+	return arr
+}
+
 // Internal methods
+
+func (this *Game) finalizeTurn(wasDefendedSuccessfully bool) {
+
+	// Removes cards from board, fills up players' hands
+
+	this.board.EmptyBoard()
+	this.fillUpCards()
+	if this.deck.GetNumOfCardsLeft() == 0 {
+		this.removePlayersThatFinished()
+	}
+
+	if !this.IsGameOver() {
+		this.setUpNextTurn(wasDefendedSuccessfully)
+	}
+}
 
 func (this *Game) dealCards() {
 	for i := 1; i <= CardsPerPlayer; i++ {
@@ -298,32 +326,4 @@ func (this *Game) getPreviousPlayer(player *Player) *Player {
 		p = p.NextPlayer
 	}
 	return p
-}
-
-func (this *Game) GetLosingPlayerName() string {
-	losingPlayer := this.GetLosingPlayer()
-	if losingPlayer == nil {
-		return ""
-	} else {
-		return losingPlayer.Name
-	}
-
-}
-
-func (this *Game) GetPlayersCardsMap() map[string][]*Card {
-	playerCards := make(map[string][]*Card)
-	for _, player := range this.players {
-		cards := player.GetAllCards()
-		playerCards[player.Name] = cards
-	}
-	return playerCards
-
-}
-
-func (this *Game) GetPlayerNamesArray() []string {
-	arr := make([]string, 0)
-	for _, player := range this.players {
-		arr = append(arr, player.Name)
-	}
-	return arr
 }

@@ -250,12 +250,6 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func isNameValid(name string) bool {
-	var IsLetter = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`).MatchString
-	return IsLetter(name)
-
-}
-
 func attack(w http.ResponseWriter, r *http.Request) {
 
 	// Validate request headers
@@ -432,6 +426,12 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 }
 
 // Validations
+
+func isNameValid(name string) bool {
+	var IsLetter = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`).MatchString
+	return IsLetter(name)
+
+}
 
 func validateRequest(w *http.ResponseWriter, r *http.Request, allowedMethods []string) error {
 	// Handles CORS, HTTP Method
