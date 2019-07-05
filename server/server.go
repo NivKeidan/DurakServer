@@ -414,6 +414,15 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 
 	// Validations
 
+	// TODO Validate that this is coming from one of the players
+	if !isGameStarted {
+		http.Error(w, createErrorJson("no game running at the moment"), 400)
+	}
+
+	if !currentGame.IsGameOver() {
+		http.Error(w, createErrorJson("game is not over"), 400)
+	}
+
 	// Update game
 	startGame()
 
