@@ -42,8 +42,8 @@ func NewGame(names ...string) (*Game, error) {
 	// Prepare game and cards
 	game := Game{board: NewBoard(), deck: deck, players: players, numOfPlayers: len(names)}
 	game.dealCards()
-	game.startGame()
 	game.chooseKozer()
+	game.startGame()
 
 	return &game, nil
 }
@@ -58,7 +58,7 @@ func (this *Game) Attack(player *Player, card *Card) error {
 		return errors.New("card limit reached")
 	}
 
-	if this.board.isEmpty() || this.board.canCardBeAdded(card) {
+	if !this.board.isEmpty() && !this.board.canCardBeAdded(card) {
 		return fmt.Errorf("%s is not a valid card to attack with at this moment", card)
 	}
 
@@ -228,9 +228,24 @@ func (this *Game) startGame() {
 }
 
 func (this *Game) getStartingPlayer() *Player {
-	// TODO Check lowest kozer
-	// TODO Add attack last durak
-	return this.players[0]
+	// Check player with lowest kozer, or use default
+
+	kozerKind := this.KozerCard.Kind
+	minValue := uint(15)                    // Use value higher than highest value
+	playerStarting := this.players[0] // Use first player, or any
+
+	for _, player := range this.players {
+		for _, card := range player.GetAllCards() {
+			if card.Kind == kozerKind && card.Value < uint(minValue) {
+				playerStarting = player
+				minValue = card.Value
+			}
+		}
+	}
+
+	// TODO Add attack durak from last round
+
+	return playerStarting
 }
 
 func (this *Game) canPlayerAttackNow(player *Player) bool {

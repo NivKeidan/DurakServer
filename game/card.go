@@ -13,34 +13,6 @@ type Card struct {
 	Value uint
 }
 
-// JSON Serialization Override
-
-func (this *Card) MarshalJSON() ([]byte, error) {
-	code, err := cardToCode(this)
-	if err != nil {return nil, err}
-	return json.Marshal(code)
-}
-
-func (this *Card) UnmarshalJSON(data []byte) error {
-	code := data[1:len(data)-1]
-	kindCode := code[len(code)-1]
-	valueCode := code[:len(code)-1]
-
-	if kind, err := GetCardKindByCode(string(kindCode)); err != nil {
-		return err
-	} else {
-		this.Kind = kind
-	}
-
-	if value, err := GetCardValueByCode(string(valueCode)); err != nil {
-		return err
-	} else {
-		this.Value = value
-	}
-
-	return nil
-}
-
 func NewCard(kind Kind, value uint) (*Card, error) {
 	card := Card{Kind: kind, Value: value}
 	return &card, nil
@@ -121,6 +93,36 @@ func (this *Card) canDefendCard(card *Card, kozerKind *Kind) bool {
 func (this *Card) isSameSuit(card *Card) bool {
 	return this.Kind == card.Kind
 }
+
+// JSON Serialization Override
+
+func (this *Card) MarshalJSON() ([]byte, error) {
+	code, err := cardToCode(this)
+	if err != nil {return nil, err}
+	return json.Marshal(code)
+}
+
+func (this *Card) UnmarshalJSON(data []byte) error {
+	code := data[1:len(data)-1]
+	kindCode := code[len(code)-1]
+	valueCode := code[:len(code)-1]
+
+	if kind, err := GetCardKindByCode(string(kindCode)); err != nil {
+		return err
+	} else {
+		this.Kind = kind
+	}
+
+	if value, err := GetCardValueByCode(string(valueCode)); err != nil {
+		return err
+	} else {
+		this.Value = value
+	}
+
+	return nil
+}
+
+// Print override
 
 func (this *Card) String() string {
 	var valueString string
