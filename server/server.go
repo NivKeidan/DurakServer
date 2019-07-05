@@ -7,7 +7,6 @@ import (
 	"DurakGo/server/stream"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/getlantern/deepcopy"
 	"log"
 	"math/rand"
@@ -727,36 +726,46 @@ func getCustomizedPlayerCards(respData httpPayloadObjects.CustomizableJSONRespon
 
 func helperFunc(originalObj httpPayloadObjects.CustomizableJSONResponseData,
 	copiedObj httpPayloadObjects.CustomizableJSONResponseData,
-	playerName string) httpPayloadObjects.CustomizableJSONResponseData {
+	playerName string) error {
 
 	fakePlayerCards := getCustomizedPlayerCards(originalObj, playerName)
 	if err := deepcopy.Copy(copiedObj, originalObj); err != nil {
-		// TODO Handle this error better?
-		fmt.Printf("ERROR OCCURRED: %v\n", err)
-		return nil
+		return errors.New("Error occurred: " + err.Error())
 	}
 	copiedObj.SetPlayerCards(fakePlayerCards)
-	return copiedObj
+	return nil
 }
 
-func customizeDataPerPlayer(playerName string) func(httpPayloadObjects.JSONResponseData) httpPayloadObjects.JSONResponseData {
+func customizeDataPerPlayer(playerName string) func(httpPayloadObjects.JSONResponseData) (httpPayloadObjects.JSONResponseData, error) {
 
-	return func(respData httpPayloadObjects.JSONResponseData) httpPayloadObjects.JSONResponseData {
+	return func(respData httpPayloadObjects.JSONResponseData) (httpPayloadObjects.JSONResponseData, error) {
 		switch val := respData.(type) {
 		case *httpPayloadObjects.StartGameResponse:
 			copiedObj := &httpPayloadObjects.StartGameResponse{}
-			return helperFunc(val, copiedObj, playerName)
+			if err := helperFunc(val, copiedObj, playerName); err != nil {
+				return nil, err
+			}
+			return copiedObj, nil
 		case *httpPayloadObjects.GameRestartResponse:
 			copiedObj := &httpPayloadObjects.GameRestartResponse{}
-			return helperFunc(val, copiedObj, playerName)
+			if err := helperFunc(val, copiedObj, playerName); err != nil {
+				return nil, err
+			}
+			return copiedObj, nil
 		case *httpPayloadObjects.GameUpdateResponse:
 			copiedObj := &httpPayloadObjects.GameUpdateResponse{}
-			return helperFunc(val, copiedObj, playerName)
+			if err := helperFunc(val, copiedObj, playerName); err != nil {
+				return nil, err
+			}
+			return copiedObj, nil
 		case *httpPayloadObjects.TurnUpdateResponse:
 			copiedObj := &httpPayloadObjects.TurnUpdateResponse{}
-			return helperFunc(val, copiedObj, playerName)
+			if err := helperFunc(val, copiedObj, playerName); err != nil {
+				return nil, err
+			}
+			return copiedObj, nil
 		default:
-			return respData
+			return respData, nil
 		}
 	}
 }

@@ -24,7 +24,7 @@ func (this *GameStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request
 }
 
 func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadObjects.JSONResponseData,
-	customizeDataFunc func(httpPayloadObjects.JSONResponseData) httpPayloadObjects.JSONResponseData) {
+	customizeDataFunc func(httpPayloadObjects.JSONResponseData) (httpPayloadObjects.JSONResponseData, error)) {
 	flusher, ok := (*w).(http.Flusher)
 
 	if !ok {
@@ -39,7 +39,11 @@ func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan ht
 		// Write to the ResponseWriter
 		// Server Sent Events compatible
 		originalData := <- messageChan
-		customizedData := customizeDataFunc(originalData)
+		customizedData, err := customizeDataFunc(originalData)
+		if err != nil {
+			http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
+			return
+		}
 
 		if _, err := fmt.Fprintf(*w, "%s", convertToString(customizedData)); err != nil {
 			http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
