@@ -155,6 +155,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName, uniquePlayerCode), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		return
 	}
 }
 
@@ -195,6 +196,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	// Handle response
 	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName, uniquePlayerCode), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		return
 	}
 
 }
@@ -228,7 +230,10 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO Handle game already started
+	if isGameStarted {
+		http.Error(w, createErrorJson("game already started"), 400)
+		return
+	}
 
 	// Remove player
 	if len(playerNames) < numOfPlayers {
@@ -246,6 +251,7 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 	// Handle response
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		return
 	}
 
 }
@@ -296,6 +302,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		return
 	}
 }
 
@@ -351,6 +358,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 
 	if err = integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		return
 	}
 }
 
@@ -374,6 +382,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		return
 	}
 }
 
@@ -400,6 +409,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		return
 	}
 }
 
@@ -417,10 +427,12 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 	// TODO Validate that this is coming from one of the players
 	if !isGameStarted {
 		http.Error(w, createErrorJson("no game running at the moment"), 400)
+		return
 	}
 
 	if !currentGame.IsGameOver() {
 		http.Error(w, createErrorJson("game is not over"), 400)
+		return
 	}
 
 	// Update game
@@ -431,6 +443,7 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		return
 	}
 }
 
