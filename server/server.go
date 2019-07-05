@@ -145,7 +145,10 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	uniquePlayerCode := createPlayerIdentificationString()
 
-	handlePlayerJoin(playerName, uniquePlayerCode)
+	if err := handlePlayerJoin(playerName, uniquePlayerCode); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+		return
+	}
 
 	if isGameStarted {
 		gameStreamer.Publish(getStartGameResponse())
@@ -186,7 +189,10 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 
 	uniquePlayerCode := createPlayerIdentificationString()
 
-	handlePlayerJoin(playerName, uniquePlayerCode)
+	if err := handlePlayerJoin(playerName, uniquePlayerCode); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+		return
+	}
 
 	appStreamer.Publish(getGameStatusResponse())
 	if isGameStarted {
@@ -436,7 +442,10 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update game
-	startGame()
+	if err := startGame(); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+		return
+	}
 
 	// Handle response
 	gameStreamer.Publish(getGameRestartResponse())
@@ -665,19 +674,19 @@ func createPlayerIdentificationString() string {
 
 // Game Logic
 
-func startGame() {
+func startGame() error {
 
 	newGame, err := game.NewGame(playerNames...)
 
 	if err != nil {
-		// TODO Handle error
-		return
+		return err
 	}
 	currentGame = newGame
 	isGameStarted = true
+	return nil
 }
 
-func handlePlayerJoin(playerName string, playerUniqueCode string) {
+func handlePlayerJoin(playerName string, playerUniqueCode string) error {
 	// Add player
 	if len(playerNames) < numOfPlayers {
 		playerNames = append(playerNames, playerName)
@@ -688,8 +697,11 @@ func handlePlayerJoin(playerName string, playerUniqueCode string) {
 
 	// Start game if required
 	if len(playerNames) == numOfPlayers {
-		startGame()
+		if err := startGame(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func handleCreateGame() {
