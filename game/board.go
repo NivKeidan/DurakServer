@@ -53,29 +53,9 @@ func (this *Board) AreAllCardsDefended() bool {
 	return true
 }
 
-func (this *Board) AddAttackingCard(card *Card) error {
-	// Validates card can be added and adds card to board
-
-	var isValid = false
-
-	if this.isEmpty() {
-		isValid = true
-	} else {
-		for _, currentCard := range this.cardsOnBoard {
-			if currentCard.attackingCard.Value == card.Value ||
-				(currentCard.defendingCard != nil && currentCard.defendingCard.Value == card.Value) {
-				isValid = true
-				break
-			}
-		}
-	}
-	if isValid {
-		newCardOnBoard := CardOnBoard{attackingCard: card}
-		this.cardsOnBoard = append(this.cardsOnBoard, &newCardOnBoard)
-		return nil
-	} else {
-		return errors.New("card not allowed")
-	}
+func (this *Board) AddAttackingCard(card *Card) {
+	newCardOnBoard := CardOnBoard{attackingCard: card}
+	this.cardsOnBoard = append(this.cardsOnBoard, &newCardOnBoard)
 }
 
 func (this *Board) DefendCard(attackingCard *Card, defendingCard *Card, kozerKind *Kind) error {
@@ -120,4 +100,15 @@ func (this *Board) isCardLimitReached(numOfCardsInHand int) bool {
 	// Checks if over total card limit on board, or if player has enough cards to defend
 
 	return len(this.cardsOnBoard) >= MaxCardsPerAttack || len(this.GetUnAnsweredCard()) >= numOfCardsInHand
+}
+
+func (this *Board) canCardBeAdded(card *Card) bool {
+	for _, currentCard := range this.cardsOnBoard {
+		if currentCard.attackingCard.Value == card.Value ||
+			(currentCard.defendingCard != nil && currentCard.defendingCard.Value == card.Value) {
+			return true
+		}
+	}
+
+	return false
 }

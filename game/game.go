@@ -58,18 +58,15 @@ func (this *Game) Attack(player *Player, card *Card) error {
 		return errors.New("card limit reached")
 	}
 
-	// TODO Move validations from board.AddAttackingCard to here
+	if this.board.isEmpty() || this.board.canCardBeAdded(card) {
+		return fmt.Errorf("%s is not a valid card to attack with at this moment", card)
+	}
 
 	// Remove card from player
 	card, err := player.GetCard(card)
 	if err != nil {return err}
 
-	// Add to board
-	err = this.board.AddAttackingCard(card)
-	if err != nil {
-		player.TakeCards(card)  // Return card to player
-		return err
-	}
+	this.board.AddAttackingCard(card)
 	return nil
 
 }
