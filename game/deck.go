@@ -5,8 +5,35 @@ import (
 	"time"
 )
 
+const (
+	// TODO Move this to game options?
+	MIN_CARD_VALUE = 6
+	MAX_CARD_VALUE = 14
+)
+
 type Deck struct {
 	cards []*Card
+}
+
+func NewDeck() (*Deck, error) {
+	deck := Deck{}
+	deck.cards = make([]*Card, 0)
+	for v := MIN_CARD_VALUE; v <= MAX_CARD_VALUE; v++ {
+		for _, kind := range Kinds {
+			card, err := NewCard(kind, uint(v))
+			if err == nil {
+				deck.cards = append(deck.cards, card)
+			} else { return nil, err}
+		}
+	}
+	return &deck, nil
+}
+
+func (this *Deck) Shuffle() {
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(this.cards), func(i, j int) {
+		this.cards[i], this.cards[j] = this.cards[j], this.cards[i]
+	})
 }
 
 func (this *Deck) GetNextCard() *Card {
@@ -21,28 +48,6 @@ func (this *Deck) GetNextCard() *Card {
 	}
 }
 
-func NewDeck() (*Deck, error) {
-	deck := Deck{}
-	deck.cards = make([]*Card, 0)
-	for v := 6; v <= 14; v++ {
-		for _, kind := range Kinds {
-			card, err := NewCard(kind, uint(v))
-			if err == nil {
-				deck.cards = append(deck.cards, card)
-			} else { return nil, err}
-		}
-	}
-    return &deck, nil
-}
-
-func (this *Deck) Shuffle() *Deck {
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(this.cards), func(i, j int) {
-		this.cards[i], this.cards[j] = this.cards[j], this.cards[i]
-	})
-	return this
-}
-
 func (this *Deck) GetLastCard() *Card {
 	// Does not remove card from deck (used for kozer card)
 
@@ -51,4 +56,9 @@ func (this *Deck) GetLastCard() *Card {
 
 func (this *Deck) GetNumOfCardsLeft() int {
 	return len(this.cards)
+}
+
+// TODO For testing only - handle this with confif env? remove this?
+func (this *Deck) ReplaceCards(newCardArray []*Card) {
+	this.cards = newCardArray
 }
