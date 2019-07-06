@@ -57,8 +57,14 @@ func GetCardValueByCode(valueCode string) (uint, error) {
 
 func cardToCode(card *Card) (string, error) {
 	valueCode, err := valueToCode(card.Value)
-	if err != nil {return "", err} else {
-		kindCode := string(GetKindCode(card.Kind))
+	if err != nil {
+		return "", err
+	} else {
+		kindCodeByte, err := GetKindCode(card.Kind)
+		if err != nil {
+			return "", err
+		}
+		kindCode := string(kindCodeByte)
 		return valueCode + kindCode, nil
 	}
 }
