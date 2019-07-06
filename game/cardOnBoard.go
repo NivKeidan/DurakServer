@@ -10,6 +10,21 @@ type CardOnBoard struct {
 	defendingCard *Card
 }
 
+func NewCardOnBoard(att *Card, def *Card) *CardOnBoard {
+	return &CardOnBoard{
+		attackingCard: att,
+		defendingCard: def,
+	}
+}
+
+func (this *CardOnBoard) GetAttackingCard() *Card {
+	return this.attackingCard
+}
+
+func (this *CardOnBoard) GetDefendingCard() *Card {
+	return this.defendingCard
+}
+
 func (this *CardOnBoard) MarshalJSON() ([]byte, error) {  // JSON Serialization override
 	cardOnBoardArray := make([]string, 0)
 	attackingCardCode, err := CardToCode(this.attackingCard)
@@ -51,4 +66,17 @@ func (this *CardOnBoard) UnmarshalJSON(data []byte) error {
 		this.defendingCard = defendingCard
 	}
 	return nil
+}
+
+func (this *CardOnBoard) String() string {
+	var returnString string
+
+	returnString = fmt.Sprintf("%v", this.attackingCard)
+	if this.defendingCard == nil {
+		returnString = fmt.Sprintf("%s (undefended)", returnString)
+	} else {
+		returnString = fmt.Sprintf("%s (defended by %v)", returnString, this.defendingCard)
+	}
+
+	return returnString
 }

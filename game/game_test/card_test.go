@@ -7,24 +7,6 @@ import (
 	"testing"
 )
 
-type cardData struct {
-	k game.Kind
-	v uint
-}
-
-func makeCardData(k string, v int) *cardData {
-	return &cardData{game.Kind(k), uint(v)}
-}
-
-func makeCard(k string, v int) *game.Card {
-	return &game.Card{Kind: game.Kind(k), Value: uint(v)}
-}
-
-type cardPair struct {
-	attackingCard *game.Card
-	defendingCard *game.Card
-}
-
 func TestNewCard(t *testing.T) {
 	// Valid pairs
 	cardDataToTest := []*cardData{makeCardData("Clubs", 2), makeCardData("Diamonds", 13)}
@@ -50,7 +32,7 @@ func TestNewCard(t *testing.T) {
 func TestNewCardByCode(t *testing.T) {
 	// Valid cases
 
-	testCodes := []string{"10D", "8S", "KH", "1C", "AC", "JD"}
+	testCodes := []string{"10D", "8S", "KH", "2C", "AC", "JD"}
 	for _, code := range testCodes {
 		_, err := game.NewCardByCode(code)
 		if err != nil {

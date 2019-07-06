@@ -99,6 +99,9 @@ func getCardValueByCode(valueCode string) (uint, error) {
 	case "J":
 		return 11, nil
 	default:
+		if string(valueCode[0]) == "0" {
+			return 0, errors.New("value has 0 in the beginning")
+		}
 		value, err := strconv.Atoi(valueCode)
 		if err != nil { return 0, err}
 		if value <= 0 || value > 10 {

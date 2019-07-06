@@ -54,11 +54,11 @@ func (this *Game) Attack(player *Player, card *Card) error {
 		return fmt.Errorf("%s can not add attack now", player.Name)
 	}
 
-	if this.board.isCardLimitReached(len(this.defendingPlayer.cards)) {
+	if this.board.IsCardLimitReached(len(this.defendingPlayer.cards)) {
 		return errors.New("card limit reached")
 	}
 
-	if !this.board.isEmpty() && !this.board.canCardBeAdded(card) {
+	if !this.board.IsEmpty() && !this.board.CanCardBeAdded(card) {
 		return fmt.Errorf("%s is not a valid card to attack with at this moment", card)
 	}
 
@@ -95,7 +95,7 @@ func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Car
 }
 
 func (this *Game) MoveToBita() error {
-	if this.board.isEmpty() {
+	if this.board.IsEmpty() {
 		return errors.New("board is empty")
 	}
 
@@ -251,7 +251,7 @@ func (this *Game) getStartingPlayer() *Player {
 func (this *Game) canPlayerAttackNow(player *Player) bool {
 	// Checks if a player has the right to attack with a card
 
-	if this.board.isEmpty() {
+	if this.board.IsEmpty() {
 		return this.startingPlayer == player
 	} else {
 		return player != this.defendingPlayer

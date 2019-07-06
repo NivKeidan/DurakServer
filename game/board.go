@@ -15,42 +15,14 @@ func NewBoard() *Board {
 	return &board
 }
 
+func (this *Board) IsEmpty() bool {
+	return len(this.cardsOnBoard) == 0
+}
+
 func (this *Board) EmptyBoard() {
 	// Removes all cards from board
 
 	this.cardsOnBoard = make([]*CardOnBoard, 0)
-}
-
-func (this *Board) GetAllCardsOnBoard() []*CardOnBoard {
-	// Returns all cards on board
-	// Does not remove cards from board
-	cards := make([]*CardOnBoard, 0)
-	for _, cardOnBoard := range this.cardsOnBoard {
-		cards = append(cards, cardOnBoard)
-	}
-	return cards
-}
-
-func (this *Board) GetAllCards() []*Card {
-	// Returns all cards that are on the board
-	// Does NOT remove cards from board
-	cards := make([]*Card, 0)
-	for _, cardOnBoard := range this.cardsOnBoard {
-		cards = append(cards, cardOnBoard.attackingCard)
-		if cardOnBoard.defendingCard != nil {
-			cards = append(cards, cardOnBoard.defendingCard)
-		}
-	}
-	return cards
-}
-
-func (this *Board) AreAllCardsDefended() bool {
-	for _, cardOnBoard := range this.cardsOnBoard {
-		if cardOnBoard.defendingCard == nil {
-			return false
-		}
-	}
-	return true
 }
 
 func (this *Board) AddAttackingCard(card *Card) {
@@ -60,8 +32,6 @@ func (this *Board) AddAttackingCard(card *Card) {
 
 func (this *Board) DefendCard(attackingCard *Card, defendingCard *Card, kozerKind *Kind) error {
 	// Defends a card
-	// Validates attacking card is on board
-	// Validates defending card can defend the attacking card
 
 	for _, cardOnBoard := range this.cardsOnBoard {
 		if cardOnBoard.attackingCard.Kind == attackingCard.Kind &&
@@ -79,7 +49,57 @@ func (this *Board) DefendCard(attackingCard *Card, defendingCard *Card, kozerKin
 
 }
 
-func (this *Board) GetUnAnsweredCard() []*Card {
+func (this *Board) CanCardBeAdded(card *Card) bool {
+	for _, currentCard := range this.cardsOnBoard {
+		if currentCard.attackingCard.Value == card.Value ||
+			(currentCard.defendingCard != nil && currentCard.defendingCard.Value == card.Value) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (this *Board) GetAllCards() []*Card {
+	// Returns all cards that are on the board
+	// Does NOT remove cards from board
+	cards := make([]*Card, 0)
+	for _, cardOnBoard := range this.cardsOnBoard {
+		cards = append(cards, cardOnBoard.attackingCard)
+		if cardOnBoard.defendingCard != nil {
+			cards = append(cards, cardOnBoard.defendingCard)
+		}
+	}
+	return cards
+}
+
+func (this *Board) GetAllCardsOnBoard() []*CardOnBoard {
+	// Returns all cards on board
+	// Does not remove cards from board
+	cards := make([]*CardOnBoard, 0)
+	for _, cardOnBoard := range this.cardsOnBoard {
+		cards = append(cards, cardOnBoard)
+	}
+	return cards
+}
+
+func (this *Board) AreAllCardsDefended() bool {
+	// Assumes cards are present on board
+	for _, cardOnBoard := range this.cardsOnBoard {
+		if cardOnBoard.defendingCard == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *Board) IsCardLimitReached(numOfCardsInHand int) bool {
+	// Checks if over total card limit on board, or if player has enough cards to defend
+
+	return len(this.cardsOnBoard) >= MaxCardsPerAttack || len(this.getUndefendedCards()) >= numOfCardsInHand
+}
+
+func (this *Board) getUndefendedCards() []*Card {
 	// Returns all unanswered cards on board
 	// Does NOT remove them from board
 
@@ -92,23 +112,6 @@ func (this *Board) GetUnAnsweredCard() []*Card {
 	return cards
 }
 
-func (this *Board) isEmpty() bool {
-	return len(this.cardsOnBoard) == 0
-}
-
-func (this *Board) isCardLimitReached(numOfCardsInHand int) bool {
-	// Checks if over total card limit on board, or if player has enough cards to defend
-
-	return len(this.cardsOnBoard) >= MaxCardsPerAttack || len(this.GetUnAnsweredCard()) >= numOfCardsInHand
-}
-
-func (this *Board) canCardBeAdded(card *Card) bool {
-	for _, currentCard := range this.cardsOnBoard {
-		if currentCard.attackingCard.Value == card.Value ||
-			(currentCard.defendingCard != nil && currentCard.defendingCard.Value == card.Value) {
-			return true
-		}
-	}
-
-	return false
+func (this *Board) String() string {
+	return fmt.Sprintf("%v", this.cardsOnBoard)
 }
