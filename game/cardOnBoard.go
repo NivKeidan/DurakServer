@@ -12,7 +12,7 @@ type CardOnBoard struct {
 
 func (this *CardOnBoard) MarshalJSON() ([]byte, error) {  // JSON Serialization override
 	cardOnBoardArray := make([]string, 0)
-	attackingCardCode, err := cardToCode(this.attackingCard)
+	attackingCardCode, err := CardToCode(this.attackingCard)
 	if err != nil {
 		return nil, err
 	} else {
@@ -20,7 +20,7 @@ func (this *CardOnBoard) MarshalJSON() ([]byte, error) {  // JSON Serialization 
 	}
 
 	if this.defendingCard != nil {
-		defendingCardCode, err := cardToCode(this.defendingCard)
+		defendingCardCode, err := CardToCode(this.defendingCard)
 		if err != nil {return nil, err} else {
 			cardOnBoardArray = append(cardOnBoardArray, defendingCardCode)
 		}

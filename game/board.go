@@ -66,7 +66,7 @@ func (this *Board) DefendCard(attackingCard *Card, defendingCard *Card, kozerKin
 	for _, cardOnBoard := range this.cardsOnBoard {
 		if cardOnBoard.attackingCard.Kind == attackingCard.Kind &&
 			cardOnBoard.attackingCard.Value == attackingCard.Value {
-			if defendingCard.canDefendCard(attackingCard, kozerKind) {
+			if defendingCard.CanDefendCard(attackingCard, kozerKind) {
 				cardOnBoard.defendingCard = defendingCard
 				return nil
 			} else {

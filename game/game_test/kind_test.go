@@ -6,8 +6,8 @@ import (
 )
 
 func TestGetKindCode(t *testing.T) {
-	// Unknown strings
-	stringsToTest := []string{"omg", "clubs"}
+	// Invalid strings
+	stringsToTest := []string{"omg", "clubs", ""}
 	for _, testString := range stringsToTest {
 		k := game.Kind(testString)
 		_, err := game.GetKindCode(k)
@@ -16,7 +16,7 @@ func TestGetKindCode(t *testing.T) {
 		}
 	}
 
-	// Known strings
+	// Valid strings
 	stringsToTest = []string{"Clubs", "Diamonds", "Hearts", "Spades"}
 	for _, testString := range stringsToTest {
 		k := game.Kind(testString)
@@ -28,7 +28,7 @@ func TestGetKindCode(t *testing.T) {
 }
 
 func TestGetCardKindByCode(t *testing.T) {
-	// Known values
+	// Valid values
 
 	codesToTest := []string{"C", "S", "H", "D"}
 	for _, code := range codesToTest {
@@ -38,9 +38,9 @@ func TestGetCardKindByCode(t *testing.T) {
 		}
 	}
 
-	// Unknown values
+	// Invalid values
 
-	codesToTest = []string{"c", "O", "1"}
+	codesToTest = []string{"c", "O", "1", ""}
 	for _, code := range codesToTest {
 		_, err := game.GetCardKindByCode(code)
 		if err == nil {

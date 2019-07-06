@@ -15,7 +15,15 @@ type Card struct {
 
 func NewCard(kind Kind, value uint) (*Card, error) {
 	card := Card{Kind: kind, Value: value}
-	return &card, nil
+	if value < 1 || value > 14 {
+		return nil, errors.New("card value incorrect")
+	}
+	for _, k := range Kinds {
+		if k == kind {
+			return &card, nil
+		}
+	}
+	return nil, errors.New("kind " + string(kind) + " is not valid\n")
 }
 
 func NewCardByCode(code string) (*Card, error) {
@@ -28,34 +36,14 @@ func NewCardByCode(code string) (*Card, error) {
 	kind, err := GetCardKindByCode(string(kindCode))
 	if err != nil { return nil, err }
 
-	value, err := GetCardValueByCode(valueCode)
+	value, err := getCardValueByCode(valueCode)
 	if err != nil { return nil, err }
 
 	newCard := &Card{Kind: kind, Value: value}
 	return newCard, nil
 }
 
-func GetCardValueByCode(valueCode string) (uint, error) {
-	switch valueCode {
-	case "A":
-		return 14, nil
-	case "K":
-		return 13, nil
-	case "Q":
-		return 12, nil
-	case "J":
-		return 11, nil
-	default:
-		value, err := strconv.Atoi(valueCode)
-		if err != nil { return 0, err}
-		if value <= 0 || value > 10 {
-			return 0, fmt.Errorf("bad card value: %v", value)
-		}
-		return uint(value), nil
-	}
-}
-
-func cardToCode(card *Card) (string, error) {
+func CardToCode(card *Card) (string, error) {
 	valueCode, err := valueToCode(card.Value)
 	if err != nil {
 		return "", err
@@ -66,6 +54,14 @@ func cardToCode(card *Card) (string, error) {
 		}
 		kindCode := string(kindCodeByte)
 		return valueCode + kindCode, nil
+	}
+}
+
+func (this *Card) CanDefendCard(attackCard *Card, kozerKind *Kind) bool {
+	if this.isSameSuit(attackCard) {
+		return this.Value > attackCard.Value
+	} else {
+		return this.Kind == *kozerKind
 	}
 }
 
@@ -88,22 +84,34 @@ func valueToCode(value uint) (string, error) {
 	}
 }
 
-func (this *Card) canDefendCard(card *Card, kozerKind *Kind) bool {
-	if this.isSameSuit(card) {
-		return this.Value > card.Value
-	} else {
-		return this.Kind == *kozerKind
-	}
-}
-
 func (this *Card) isSameSuit(card *Card) bool {
 	return this.Kind == card.Kind
+}
+
+func getCardValueByCode(valueCode string) (uint, error) {
+	switch valueCode {
+	case "A":
+		return 14, nil
+	case "K":
+		return 13, nil
+	case "Q":
+		return 12, nil
+	case "J":
+		return 11, nil
+	default:
+		value, err := strconv.Atoi(valueCode)
+		if err != nil { return 0, err}
+		if value <= 0 || value > 10 {
+			return 0, fmt.Errorf("bad card value: %v", value)
+		}
+		return uint(value), nil
+	}
 }
 
 // JSON Serialization Override
 
 func (this *Card) MarshalJSON() ([]byte, error) {
-	code, err := cardToCode(this)
+	code, err := CardToCode(this)
 	if err != nil {return nil, err}
 	return json.Marshal(code)
 }
@@ -119,7 +127,7 @@ func (this *Card) UnmarshalJSON(data []byte) error {
 		this.Kind = kind
 	}
 
-	if value, err := GetCardValueByCode(string(valueCode)); err != nil {
+	if value, err := getCardValueByCode(string(valueCode)); err != nil {
 		return err
 	} else {
 		this.Value = value
