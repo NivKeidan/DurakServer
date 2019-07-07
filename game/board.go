@@ -10,9 +10,9 @@ type Board struct {
 }
 
 func NewBoard() *Board {
-	board := Board{}
+	board := &Board{}
 	board.EmptyBoard()
-	return &board
+	return board
 }
 
 func (this *Board) IsEmpty() bool {
