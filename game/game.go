@@ -5,17 +5,18 @@ import (
 	"fmt"
 )
 
+// TODO Move to config/options
 const CardsPerPlayer = 6
 const MaxCardsPerAttack = 6
 
 type Game struct {
-	board           *Board
-	deck            *Deck
-	players         []*Player
-	startingPlayer  *Player
-	defendingPlayer *Player
-	KozerCard       *Card
-	numOfPlayers	int
+	board              *Board
+	deck               *Deck
+	players            []*Player
+	startingPlayer     *Player
+	defendingPlayer    *Player
+	KozerCard          *Card
+	numOfActivePlayers int
 }
 
 // Server API
@@ -40,7 +41,7 @@ func NewGame(names ...string) (*Game, error) {
 	lastPlayer.NextPlayer = players[0]
 
 	// Prepare game and cards
-	game := Game{board: NewBoard(), deck: deck, players: players, numOfPlayers: len(names)}
+	game := Game{board: NewBoard(), deck: deck, players: players, numOfActivePlayers: len(names)}
 	game.dealCards()
 	game.chooseKozer()
 	game.startGame()
@@ -49,6 +50,9 @@ func NewGame(names ...string) (*Game, error) {
 }
 
 func (this *Game) Attack(player *Player, card *Card) error {
+	if card == nil {
+		return fmt.Errorf("card is not valid (most likely nil)")
+	}
 
 	if !this.canPlayerAttackNow(player) {
 		return fmt.Errorf("%s can not add attack now", player.Name)
@@ -72,9 +76,17 @@ func (this *Game) Attack(player *Player, card *Card) error {
 }
 
 func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Card) error {
+	if attackingCard == nil || defendingCard == nil {
+		return errors.New("attacking or defending card is invalid (probably nil)")
+	}
 
 	if this.defendingPlayer != player {
 		return fmt.Errorf("%s is not defending now", player.Name)
+	}
+
+	// Check defending card can defend this card
+	if !defendingCard.CanDefendCard(attackingCard, &this.KozerCard.Kind) {
+		return fmt.Errorf("%v can not defend %v\n", defendingCard, attackingCard)
 	}
 
 	// Remove card from player
@@ -85,7 +97,7 @@ func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Car
 	}
 
 	// Add card to board
-	err = this.board.DefendCard(attackingCard, defendingCard, &this.KozerCard.Kind)
+	err = this.board.AddDefendingCard(attackingCard, defendingCard)
 
 	if err != nil {
 		player.TakeCards(defendingCard)  // Return card to player
@@ -102,23 +114,32 @@ func (this *Game) MoveToBita() error {
 	if !this.board.AreAllCardsDefended() {
 		return errors.New("some cards are un defended")
 	}
+	this.board.EmptyBoard()
+	this.fillUpCards()
 	this.finalizeTurn(true)
 	return nil
 }
 
-func (this *Game) HandlePlayerTakesCard() {
+func (this *Game) PickUpCards() error {
+
+	if this.board.IsEmpty() {
+		return errors.New("board is empty")
+	}
 
 	cards := this.board.PeekCards()
 	this.defendingPlayer.TakeCards(cards...)
+	this.board.EmptyBoard()
+	this.fillUpCards()
 	this.finalizeTurn(false)
+	return nil
 }
 
 func (this *Game) IsGameOver() bool {
-	return this.numOfPlayers < 2
+	return this.numOfActivePlayers < 2
 }
 
 func (this *Game) IsDraw() bool {
-	return this.numOfPlayers == 0
+	return this.numOfActivePlayers == 0
 }
 
 func (this *Game) GetPlayerByName(name string) (*Player, error) {
@@ -128,18 +149,6 @@ func (this *Game) GetPlayerByName(name string) (*Player, error) {
 		}
 	}
 	return nil, fmt.Errorf("no such player exists: %s", name)
-}
-
-func (this *Game) NumOfCardsLeftInDeck() int {
-	return this.deck.GetNumOfCardsLeft()
-}
-
-func (this *Game) GetCardsOnBoard() []*CardOnBoard {
-	return this.board.PeekCardsOnBoard()
-}
-
-func (this *Game) GetNumOfCardsLeftInDeck() int {
-	return this.deck.GetNumOfCardsLeft()
 }
 
 func (this *Game) GetLosingPlayer() *Player {
@@ -154,6 +163,16 @@ func (this *Game) GetLosingPlayer() *Player {
 		}
 	}
 	return nil
+}
+
+func (this *Game) GetPlayersCardsMap() map[string][]*Card {
+	playerCards := make(map[string][]*Card)
+	for _, player := range this.players {
+		cards := player.PeekCards()
+		playerCards[player.Name] = cards
+	}
+	return playerCards
+
 }
 
 func (this *Game) GetStartingPlayer() *Player {
@@ -174,16 +193,6 @@ func (this *Game) GetLosingPlayerName() string {
 
 }
 
-func (this *Game) GetPlayersCardsMap() map[string][]*Card {
-	playerCards := make(map[string][]*Card)
-	for _, player := range this.players {
-		cards := player.PeekCards()
-		playerCards[player.Name] = cards
-	}
-	return playerCards
-
-}
-
 func (this *Game) GetPlayerNamesArray() []string {
 	arr := make([]string, 0)
 	for _, player := range this.players {
@@ -192,14 +201,20 @@ func (this *Game) GetPlayerNamesArray() []string {
 	return arr
 }
 
+func (this *Game) GetNumOfCardsLeftInDeck() int {
+	return this.deck.GetNumOfCardsLeft()
+}
+
+func (this *Game) GetCardsOnBoard() []*CardOnBoard {
+	return this.board.PeekCardsOnBoard()
+}
+
 // Internal methods
 
 func (this *Game) finalizeTurn(wasDefendedSuccessfully bool) {
 
-	// Removes cards from board, fills up players' hands
+	// Removes player that are finished and set up next turn
 
-	this.board.EmptyBoard()
-	this.fillUpCards()
 	if this.deck.GetNumOfCardsLeft() == 0 {
 		this.removePlayersThatFinished()
 	}
@@ -270,8 +285,8 @@ func (this *Game) fillUpCards() {
 	playerFillingUp := this.getPlayerFillingUpFirst()
 	playerFilledUpCounter := 0
 
-	for playerFilledUpCounter < this.numOfPlayers {
-		if playerFilledUpCounter != this.numOfPlayers - 1 {
+	for playerFilledUpCounter < this.numOfActivePlayers {
+		if playerFilledUpCounter != this.numOfActivePlayers- 1 {
 			if playerFillingUp == playerFillingUpLast {
 				playerFillingUp = playerFillingUp.NextPlayer
 			} else {
@@ -321,7 +336,7 @@ func (this *Game) removePlayersThatFinished() {
 
 	currentPlayer := this.defendingPlayer
 	playersRemoved := 0
-	for i := 0; i < this.numOfPlayers; i++ {
+	for i := 0; i < this.numOfActivePlayers; i++ {
 		if currentPlayer.GetNumOfCardsInHand() == 0 {
 			playersRemoved++
 			previousPlayer := this.getPreviousPlayer(currentPlayer)
@@ -329,7 +344,7 @@ func (this *Game) removePlayersThatFinished() {
 		}
 		currentPlayer = currentPlayer.NextPlayer
 	}
-	this.numOfPlayers = this.numOfPlayers - playersRemoved
+	this.numOfActivePlayers = this.numOfActivePlayers - playersRemoved
 }
 
 func (this *Game) getPreviousPlayer(player *Player) *Player {

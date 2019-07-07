@@ -57,8 +57,3 @@ func (this *Deck) PeekLastCard() *Card {
 func (this *Deck) GetNumOfCardsLeft() int {
 	return len(this.cards)
 }
-
-// TODO For testing only - handle this with confif env? remove this?
-func (this *Deck) ReplaceCards(newCardArray []*Card) {
-	this.cards = newCardArray
-}

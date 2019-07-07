@@ -1,12 +1,11 @@
 package game
 
 import (
-	"DurakGo/game"
 	"testing"
 )
 
 func TestIsEmpty(t *testing.T) {
-	b := game.NewBoard()
+	b := NewBoard()
 	if !b.IsEmpty() {
 		t.Errorf("Board is not empty")
 	}
@@ -19,7 +18,7 @@ func TestIsEmpty(t *testing.T) {
 }
 
 func TestEmptyBoard(t *testing.T) {
-	b := game.NewBoard()
+	b := NewBoard()
 	c := GetRandomCard()
 	b.AddAttackingCard(c)
 	if b.IsEmpty() {
@@ -32,7 +31,7 @@ func TestEmptyBoard(t *testing.T) {
 }
 
 func TestAddAttackingCard(t *testing.T) {
-	b := game.NewBoard()
+	b := NewBoard()
 	c1 := GetRandomCard()
 	b.AddAttackingCard(c1)
 	c2 := GetRandomCard()
@@ -57,49 +56,46 @@ func TestAddAttackingCard(t *testing.T) {
 
 }
 
-func TestDefendCard(t *testing.T) {
-	b := game.NewBoard()
-	kozerKind := game.Kind("Hearts")
-	cardPairsToTest := make([]cardPair, 0)
+func TestAddDefendingCard(t *testing.T) {
+	b := NewBoard()
 
-	// Valid pairs
-	cardPairsToTest = []cardPair{
-		{makeCard("Clubs", 13), makeCard("Clubs", 14)},
-		{makeCard("Clubs", 2), makeCard("Clubs", 13)},
-		{makeCard("Hearts", 13), makeCard("Hearts", 14)},
-		{makeCard("Clubs", 14), makeCard("Hearts", 2)},
-		{makeCard("Clubs", 2), makeCard("Hearts", 2)},
-		{makeCard("Clubs", 2), makeCard("Hearts", 10)},
+	c1 := GetRandomCard()
+	c2 := GetRandomCard()
+
+	// Check empty board
+	if err := b.AddDefendingCard(c1, c2); err == nil {
+		t.Errorf("Defended successfully even though board should be empty")
 	}
 
-	for _, cardPair := range cardPairsToTest {
-		b.AddAttackingCard(cardPair.attackingCard)
-		if err := b.DefendCard(cardPair.attackingCard, cardPair.defendingCard, &kozerKind); err != nil {
-			t.Errorf("Could not defend %v with %v\n", cardPair.attackingCard, cardPair.defendingCard)
+	b.AddAttackingCard(c1)
+	if err := b.AddDefendingCard(c1, c2); err != nil {
+		t.Errorf("Error occurred: %s\n", err.Error())
+		return
+	}
+
+	counter := 0
+	expectedCounter := 1
+
+	for _, c := range b.PeekCardsOnBoard() {
+		counter++
+		if c.attackingCard != c1 {
+			t.Errorf("Expected attacking card to be %v, instead got %v\n", c1, c.attackingCard)
+			return
 		}
-		b.EmptyBoard()
-	}
-
-	// Invalid pairs
-	cardPairsToTest = []cardPair{
-		{makeCard("Clubs", 14), makeCard("Clubs", 13)},
-		{makeCard("Clubs", 2), makeCard("Clubs", 2)},
-		{makeCard("Hearts", 14), makeCard("Hearts", 13)},
-		{makeCard("Hearts", 2), makeCard("Clubs", 2)},
-		{makeCard("Hearts", 2), makeCard("Clubs", 3)},
-	}
-	for _, cardPair := range cardPairsToTest {
-		b.AddAttackingCard(cardPair.attackingCard)
-		if err := b.DefendCard(cardPair.attackingCard, cardPair.defendingCard, &kozerKind); err == nil {
-			t.Errorf("Defended %v with %v successfully\n", cardPair.attackingCard, cardPair.defendingCard)
+		if c.defendingCard != c2 {
+			t.Errorf("Expected defending card to be %v, instead got %v\n", c2, c.defendingCard)
+			return
 		}
-		b.EmptyBoard()
 	}
 
+	if counter != expectedCounter {
+		t.Errorf("Expected counter to be %d, instead got %d\n", expectedCounter, counter)
+		return
+	}
 }
 
 func TestCanCardBeAdded(t *testing.T) {
-	b := game.NewBoard()
+	b := NewBoard()
 	b.AddAttackingCard(makeCard("Clubs", 2))
 	b.AddAttackingCard(makeCard("Diamonds", 2))
 	b.AddAttackingCard(makeCard("Hearts", 9))
@@ -130,13 +126,12 @@ func TestIsCardLimitReached(t *testing.T) {
 }
 
 func TestAreAllCardsDefended(t *testing.T) {
-	b := game.NewBoard()
-	kozerKind := game.Kind("Hearts")
+	b := NewBoard()
 
 	att := makeCard("Clubs", 3)
 	def := makeCard("Clubs", 5)
 	b.AddAttackingCard(att)
-	if err := b.DefendCard(att, def, &kozerKind); err != nil {
+	if err := b.AddDefendingCard(att, def); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 	}
 
@@ -147,7 +142,7 @@ func TestAreAllCardsDefended(t *testing.T) {
 	att = makeCard("Clubs", 10)
 	def = makeCard("Hearts", 2)
 	b.AddAttackingCard(att)
-	if err := b.DefendCard(att, def, &kozerKind); err != nil {
+	if err := b.AddDefendingCard(att, def); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 	}
 
@@ -164,8 +159,7 @@ func TestAreAllCardsDefended(t *testing.T) {
 }
 
 func TestGetAllCards(t *testing.T) {
-	b := game.NewBoard()
-	kozerKind := game.Kind("Hearts")
+	b := NewBoard()
 	att := makeCard("Clubs", 3)
 	def := makeCard("Clubs", 5)
 	att2 := makeCard("Clubs", 10)
@@ -175,12 +169,12 @@ func TestGetAllCards(t *testing.T) {
 	counter := 0
 
 	b.AddAttackingCard(att)
-	if err := b.DefendCard(att, def, &kozerKind); err != nil {
+	if err := b.AddDefendingCard(att, def); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 	}
 
 	b.AddAttackingCard(att2)
-	if err := b.DefendCard(att2, def2, &kozerKind); err != nil {
+	if err := b.AddDefendingCard(att2, def2); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 	}
 
@@ -200,8 +194,7 @@ func TestGetAllCards(t *testing.T) {
 }
 
 func TestGetAllCardsOnBoard(t *testing.T) {
-	b := game.NewBoard()
-	kozerKind := game.Kind("Hearts")
+	b := NewBoard()
 	att := makeCard("Clubs", 3)
 	def := makeCard("Clubs", 5)
 	att2 := makeCard("Clubs", 10)
@@ -211,12 +204,12 @@ func TestGetAllCardsOnBoard(t *testing.T) {
 	counter := 0
 
 	b.AddAttackingCard(att)
-	if err := b.DefendCard(att, def, &kozerKind); err != nil {
+	if err := b.AddDefendingCard(att, def); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 	}
 
 	b.AddAttackingCard(att2)
-	if err := b.DefendCard(att2, def2, &kozerKind); err != nil {
+	if err := b.AddDefendingCard(att2, def2); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 	}
 

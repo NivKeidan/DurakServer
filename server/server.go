@@ -379,7 +379,10 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 	// Validations
 
 	// Update game
-	currentGame.HandlePlayerTakesCard()
+	if err := currentGame.PickUpCards(); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
 
 	// Handle response
 
@@ -401,6 +404,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 
 	// Validations
+
 
 	// Update game
 	if err := currentGame.MoveToBita(); err != nil {

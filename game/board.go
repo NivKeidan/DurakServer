@@ -30,17 +30,18 @@ func (this *Board) AddAttackingCard(card *Card) {
 	this.cardsOnBoard = append(this.cardsOnBoard, &newCardOnBoard)
 }
 
-func (this *Board) DefendCard(attackingCard *Card, defendingCard *Card, kozerKind *Kind) error {
-	// Defends a card
+func (this *Board) AddDefendingCard(attackingCard *Card, defendingCard *Card) error {
+	// Validations are done at game level
+	// This only validates attacking card is on table and un defended
 
 	for _, cardOnBoard := range this.cardsOnBoard {
 		if cardOnBoard.attackingCard.Kind == attackingCard.Kind &&
 			cardOnBoard.attackingCard.Value == attackingCard.Value {
-			if defendingCard.CanDefendCard(attackingCard, kozerKind) {
+			if cardOnBoard.defendingCard != nil {
+				return fmt.Errorf("%v is already defended with %v\n", cardOnBoard.attackingCard, cardOnBoard.defendingCard)
+			} else {
 				cardOnBoard.defendingCard = defendingCard
 				return nil
-			} else {
-				return fmt.Errorf("%v can not defend %v", defendingCard, attackingCard)
 			}
 		}
 	}

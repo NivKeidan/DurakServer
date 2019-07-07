@@ -1,7 +1,6 @@
-package game_test
+package game
 
 import (
-	"DurakGo/game"
 	"testing"
 )
 
@@ -9,8 +8,8 @@ func TestGetKindCode(t *testing.T) {
 	// Invalid strings
 	stringsToTest := []string{"omg", "clubs", ""}
 	for _, testString := range stringsToTest {
-		k := game.Kind(testString)
-		_, err := game.GetKindCode(k)
+		k := Kind(testString)
+		_, err := GetKindCode(k)
 		if err == nil {
 			t.Errorf("Kind %s was approved!\n", testString)
 		}
@@ -19,8 +18,8 @@ func TestGetKindCode(t *testing.T) {
 	// Valid strings
 	stringsToTest = []string{"Clubs", "Diamonds", "Hearts", "Spades"}
 	for _, testString := range stringsToTest {
-		k := game.Kind(testString)
-		_, err := game.GetKindCode(k)
+		k := Kind(testString)
+		_, err := GetKindCode(k)
 		if err != nil {
 			t.Errorf("Kind %s was not OK!\n", testString)
 		}
@@ -32,7 +31,7 @@ func TestGetCardKindByCode(t *testing.T) {
 
 	codesToTest := []string{"C", "S", "H", "D"}
 	for _, code := range codesToTest {
-		_, err := game.GetCardKindByCode(code)
+		_, err := GetCardKindByCode(code)
 		if err != nil {
 			t.Errorf("Kind code %s was not converted to kind successfully\n", code)
 		}
@@ -42,7 +41,7 @@ func TestGetCardKindByCode(t *testing.T) {
 
 	codesToTest = []string{"c", "O", "1", ""}
 	for _, code := range codesToTest {
-		_, err := game.GetCardKindByCode(code)
+		_, err := GetCardKindByCode(code)
 		if err == nil {
 			t.Errorf("Kind code %s was converted to kind successfully\n", code)
 		}

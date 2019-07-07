@@ -1,7 +1,6 @@
 package game
 
 import (
-	"DurakGo/game"
 	"fmt"
 	"strconv"
 	"testing"
@@ -11,7 +10,7 @@ func TestNewCard(t *testing.T) {
 	// Valid pairs
 	cardDataToTest := []*cardData{makeCardData("Clubs", 2), makeCardData("Diamonds", 13)}
 	for _, cardData := range cardDataToTest {
-		_, err := game.NewCard(cardData.k, cardData.v)
+		_, err := NewCard(cardData.k, cardData.v)
 		if err != nil {
 			t.Errorf("Card value %d of kind %s not valid\nError: %s\n", cardData.v, cardData.k, err.Error())
 		}
@@ -22,7 +21,7 @@ func TestNewCard(t *testing.T) {
 	cardDataToTest = []*cardData{makeCardData("Clubs", 0), makeCardData("Clubs", 15),
 		makeCardData("Clubs", -51), makeCardData("clubs", 1), makeCardData("omg", 13)}
 	for _, cardData := range cardDataToTest {
-		_, err := game.NewCard(cardData.k, cardData.v)
+		_, err := NewCard(cardData.k, cardData.v)
 		if err == nil {
 			t.Errorf("Card value %d of kind %s not valid\n", cardData.v, cardData.k)
 		}
@@ -34,7 +33,7 @@ func TestNewCardByCode(t *testing.T) {
 
 	testCodes := []string{"10D", "8S", "KH", "2C", "AC", "JD"}
 	for _, code := range testCodes {
-		_, err := game.NewCardByCode(code)
+		_, err := NewCardByCode(code)
 		if err != nil {
 			t.Errorf("code %s was invalid\nerror: %s\n", code, err.Error())
 		}
@@ -44,7 +43,7 @@ func TestNewCardByCode(t *testing.T) {
 
 	testCodes = []string{"01D", "014C", "1c", "", "1", "q", "c", "-15", "?", "%"}
 	for _, code := range testCodes {
-		_, err := game.NewCardByCode(code)
+		_, err := NewCardByCode(code)
 		if err == nil {
 			t.Errorf("code %s was valid!\n", code)
 		}
@@ -72,7 +71,7 @@ func TestCardToCode(t *testing.T) {
 			}
 			codeExpected := fmt.Sprintf("%s%s", valueString, string(c[0]))
 			card := makeCard(c, n)
-			codeReceived, err := game.CardToCode(card)
+			codeReceived, err := CardToCode(card)
 			if err != nil {
 				t.Errorf("Error occurred: %s\n", err.Error())
 			}
@@ -84,7 +83,7 @@ func TestCardToCode(t *testing.T) {
 }
 
 func TestCanDefendCard(t *testing.T) {
-	kozerKind := game.Kind("Hearts")
+	kozerKind := Kind("Hearts")
 	cardPairsToTest := make([]cardPair, 0)
 
 	// Valid pairs

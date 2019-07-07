@@ -1,19 +1,18 @@
 package game
 
 import (
-	"DurakGo/game"
 	"testing"
 )
 
 func TestNewPlayer(t *testing.T) {
-	game.NewPlayer("exampleName")
+	NewPlayer("exampleName")
 }
 
 func TestGetCard(t *testing.T) {
 	c1 := makeCard("Hearts", 13)
 	c2 := makeCard("Clubs", 6)
-	cards := []*game.Card{c1, c2}
-	p := game.NewPlayer("test")
+	cards := []*Card{c1, c2}
+	p := NewPlayer("test")
 	p.TakeCards(cards...)
 
 	c1FromP, err := p.GetCard(c1)
