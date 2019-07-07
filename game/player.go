@@ -21,10 +21,6 @@ func (this *Player) TakeCards(cards ...*Card) {
 	this.cards = append(this.cards, cards...)
 }
 
-func (this *Player) String() string {
-	return fmt.Sprintf("%v: %v", this.Name, this.cards)
-}
-
 func (this *Player) GetCard(card *Card) (*Card, error) {
 	// Gets a specific card and removes card from hand
 	for i, currentCard := range this.cards {
@@ -36,7 +32,7 @@ func (this *Player) GetCard(card *Card) (*Card, error) {
 	return nil, errors.New("no such card in player's hand")
 }
 
-func (this *Player) GetAllCards() []*Card {
+func (this *Player) PeekCards() []*Card {
 	// Returns all cards
 	// Does NOT remove them from hand
 	return this.cards
@@ -44,4 +40,8 @@ func (this *Player) GetAllCards() []*Card {
 
 func (this *Player) GetNumOfCardsInHand() int {
 	return len(this.cards)
+}
+
+func (this *Player) String() string {
+	return fmt.Sprintf("%v: %v", this.Name, this.cards)
 }

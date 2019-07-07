@@ -177,7 +177,7 @@ func (this *Game) GetLosingPlayerName() string {
 func (this *Game) GetPlayersCardsMap() map[string][]*Card {
 	playerCards := make(map[string][]*Card)
 	for _, player := range this.players {
-		cards := player.GetAllCards()
+		cards := player.PeekCards()
 		playerCards[player.Name] = cards
 	}
 	return playerCards
@@ -235,7 +235,7 @@ func (this *Game) getStartingPlayer() *Player {
 	playerStarting := this.players[0] // Use first player, or any
 
 	for _, player := range this.players {
-		for _, card := range player.GetAllCards() {
+		for _, card := range player.PeekCards() {
 			if card.Kind == kozerKind && card.Value < uint(minValue) {
 				playerStarting = player
 				minValue = card.Value
