@@ -94,10 +94,8 @@ func (this *Board) AreAllCardsDefended() bool {
 	return true
 }
 
-func (this *Board) IsCardLimitReached(numOfCardsInHand int) bool {
-	// Checks if over total card limit on board, or if player has enough cards to defend
-
-	return len(this.cardsOnBoard) >= MaxCardsPerAttack || len(this.peekUndefendedCards()) >= numOfCardsInHand
+func (this *Board) NumOfAttackingCards() int {
+	return len(this.cardsOnBoard)
 }
 
 func (this *Board) peekUndefendedCards() []*Card {

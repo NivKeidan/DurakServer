@@ -58,8 +58,12 @@ func (this *Game) Attack(player *Player, card *Card) error {
 		return fmt.Errorf("%s can not add attack now", player.Name)
 	}
 
-	if this.board.IsCardLimitReached(len(this.defendingPlayer.cards)) {
-		return errors.New("card limit reached")
+	if this.board.NumOfAttackingCards() >= MaxCardsPerAttack {
+		return errors.New("attacking cards limit reached")
+	}
+
+	if this.board.NumOfAttackingCards() >= this.defendingPlayer.GetNumOfCardsInHand() {
+		return errors.New("player does not have enough cards to defend")
 	}
 
 	if !this.board.IsEmpty() && !this.board.CanCardBeAdded(card) {
