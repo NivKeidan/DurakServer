@@ -48,7 +48,7 @@ func (this *Deck) GetNextCard() *Card {
 	}
 }
 
-func (this *Deck) GetLastCard() *Card {
+func (this *Deck) PeekLastCard() *Card {
 	// Does not remove card from deck (used for kozer card)
 
 	return this.cards[len(this.cards)-1]

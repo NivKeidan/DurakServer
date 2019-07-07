@@ -44,7 +44,7 @@ func TestAddAttackingCard(t *testing.T) {
 	expectedCount := 4
 	counter := 0
 
-	for _, card := range b.GetAllCards() {
+	for _, card := range b.PeekCards() {
 		counter++
 		if card != c1 && card != c2 && card != c3 && card != c4 {
 			t.Errorf("Got unknown card %v on board\n", card)
@@ -52,7 +52,7 @@ func TestAddAttackingCard(t *testing.T) {
 	}
 
 	if counter != expectedCount {
-		t.Errorf("Counter reached %d instead of %d\nCards returned: %v\n", counter, expectedCount, b.GetAllCards())
+		t.Errorf("Counter reached %d instead of %d\nCards returned: %v\n", counter, expectedCount, b.PeekCards())
 	}
 
 }
@@ -112,7 +112,7 @@ func TestCanCardBeAdded(t *testing.T) {
 	for _, i := range []int{2,9,10,11,13,14} {
 		c := makeCard("Clubs", i)
 		if !b.CanCardBeAdded(c) {
-			t.Errorf("Receieved false for being able to add %v to board with: %v\n", c, b.GetAllCards())
+			t.Errorf("Receieved false for being able to add %v to board with: %v\n", c, b.PeekCards())
 		}
 	}
 
@@ -120,7 +120,7 @@ func TestCanCardBeAdded(t *testing.T) {
 	for _, i := range []int{0, 1, 3,4,5,6,7,8,12, 15, 16, 100, -24, -0, 150} {
 		c := makeCard("Clubs", i)
 		if b.CanCardBeAdded(c) {
-			t.Errorf("Receieved true for being able to add %v to board with: %v\n", c, b.GetAllCards())
+			t.Errorf("Receieved true for being able to add %v to board with: %v\n", c, b.PeekCards())
 		}
 	}
 }
@@ -186,7 +186,7 @@ func TestGetAllCards(t *testing.T) {
 
 	b.AddAttackingCard(att3)
 
-	for _, card := range b.GetAllCards() {
+	for _, card := range b.PeekCards() {
 		counter++
 		if card != att && card != att2 && card != att3 && card != def && card != def2 {
 			t.Errorf("Got unknown card %v on board\n", card)
@@ -222,7 +222,7 @@ func TestGetAllCardsOnBoard(t *testing.T) {
 
 	b.AddAttackingCard(att3)
 
-	for _, cardOnBoard := range b.GetAllCardsOnBoard() {
+	for _, cardOnBoard := range b.PeekCardsOnBoard() {
 		counter++
 		a := cardOnBoard.GetAttackingCard()
 		d := cardOnBoard.GetDefendingCard()

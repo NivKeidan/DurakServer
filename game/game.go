@@ -108,7 +108,7 @@ func (this *Game) MoveToBita() error {
 
 func (this *Game) HandlePlayerTakesCard() {
 
-	cards := this.board.GetAllCards()
+	cards := this.board.PeekCards()
 	this.defendingPlayer.TakeCards(cards...)
 	this.finalizeTurn(false)
 }
@@ -135,7 +135,7 @@ func (this *Game) NumOfCardsLeftInDeck() int {
 }
 
 func (this *Game) GetCardsOnBoard() []*CardOnBoard {
-	return this.board.GetAllCardsOnBoard()
+	return this.board.PeekCardsOnBoard()
 }
 
 func (this *Game) GetNumOfCardsLeftInDeck() int {
@@ -218,7 +218,7 @@ func (this *Game) dealCards() {
 }
 
 func (this *Game) chooseKozer() {
-	lastCardInDeck := this.deck.GetLastCard()
+	lastCardInDeck := this.deck.PeekLastCard()
 	this.KozerCard = lastCardInDeck
 }
 

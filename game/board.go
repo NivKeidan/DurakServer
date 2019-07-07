@@ -60,7 +60,7 @@ func (this *Board) CanCardBeAdded(card *Card) bool {
 	return false
 }
 
-func (this *Board) GetAllCards() []*Card {
+func (this *Board) PeekCards() []*Card {
 	// Returns all cards that are on the board
 	// Does NOT remove cards from board
 	cards := make([]*Card, 0)
@@ -73,7 +73,7 @@ func (this *Board) GetAllCards() []*Card {
 	return cards
 }
 
-func (this *Board) GetAllCardsOnBoard() []*CardOnBoard {
+func (this *Board) PeekCardsOnBoard() []*CardOnBoard {
 	// Returns all cards on board
 	// Does not remove cards from board
 	cards := make([]*CardOnBoard, 0)
@@ -96,10 +96,10 @@ func (this *Board) AreAllCardsDefended() bool {
 func (this *Board) IsCardLimitReached(numOfCardsInHand int) bool {
 	// Checks if over total card limit on board, or if player has enough cards to defend
 
-	return len(this.cardsOnBoard) >= MaxCardsPerAttack || len(this.getUndefendedCards()) >= numOfCardsInHand
+	return len(this.cardsOnBoard) >= MaxCardsPerAttack || len(this.peekUndefendedCards()) >= numOfCardsInHand
 }
 
-func (this *Board) getUndefendedCards() []*Card {
+func (this *Board) peekUndefendedCards() []*Card {
 	// Returns all unanswered cards on board
 	// Does NOT remove them from board
 
