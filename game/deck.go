@@ -5,12 +5,6 @@ import (
 	"time"
 )
 
-const (
-	// TODO Move this to game options?
-	MIN_CARD_VALUE = 6
-	MAX_CARD_VALUE = 14
-)
-
 type Deck struct {
 	cards []*Card
 }
@@ -18,7 +12,7 @@ type Deck struct {
 func NewDeck() (*Deck, error) {
 	deck := Deck{}
 	deck.cards = make([]*Card, 0)
-	for v := MIN_CARD_VALUE; v <= MAX_CARD_VALUE; v++ {
+	for v := MinCardValue; v <= MaxCardValue; v++ {
 		for _, kind := range Kinds {
 			card, err := NewCard(kind, uint(v))
 			if err == nil {

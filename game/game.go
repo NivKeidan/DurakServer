@@ -6,8 +6,12 @@ import (
 )
 
 // TODO Move to config/options
-const CardsPerPlayer = 6
-const MaxCardsPerAttack = 6
+const (
+	CardsPerPlayer    = 6
+	MaxCardsPerAttack = 6
+	MinCardValue      = 6
+	MaxCardValue      = 14
+)
 
 type Game struct {
 	board              *Board

@@ -15,7 +15,11 @@ func makeCardData(k string, v int) *cardData {
 }
 
 func makeCard(k string, v int) *Card {
-	return &Card{Kind: Kind(k), Value: uint(v)}
+	if c, err := NewCard(Kind(k), uint(v)); err != nil {
+		return nil
+	} else {
+		return c
+	}
 }
 
 type cardPair struct {
@@ -24,7 +28,11 @@ type cardPair struct {
 }
 
 func GetRandomCard() *Card {
-	return &Card{Kind: getRandomKind(), Value: getRandomCardValue()}
+	if c, err := NewCard(getRandomKind(), getRandomCardValue()); err != nil {
+		return nil
+	} else {
+		return c
+	}
 }
 
 func getRandomKind() Kind {

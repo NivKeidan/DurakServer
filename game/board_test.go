@@ -96,8 +96,8 @@ func TestAddDefendingCard(t *testing.T) {
 
 func TestCanCardBeAdded(t *testing.T) {
 	b := NewBoard()
-	b.AddAttackingCard(makeCard("Clubs", 2))
-	b.AddAttackingCard(makeCard("Diamonds", 2))
+	b.AddAttackingCard(makeCard("Clubs", 6))
+	b.AddAttackingCard(makeCard("Diamonds", 6))
 	b.AddAttackingCard(makeCard("Hearts", 9))
 	b.AddAttackingCard(makeCard("Clubs", 10))
 	b.AddAttackingCard(makeCard("Clubs", 13))
@@ -105,17 +105,17 @@ func TestCanCardBeAdded(t *testing.T) {
 	b.AddAttackingCard(makeCard("Clubs", 11))
 
 	// Valid options
-	for _, i := range []int{2,9,10,11,13,14} {
+	for _, i := range []int{6, 9, 10, 11, 13, 14} {
 		c := makeCard("Clubs", i)
-		if !b.CanCardBeAdded(c) {
+		if c == nil || !b.CanCardBeAdded(c) {
 			t.Errorf("Receieved false for being able to add %v to board with: %v\n", c, b.PeekCards())
 		}
 	}
 
 	// Invalid options
-	for _, i := range []int{0, 1, 3,4,5,6,7,8,12, 15, 16, 100, -24, -0, 150} {
+	for _, i := range []int{0, 1, 2, 3,4,5,7,8,12, 15, 16, 100, -24, -0, 150} {
 		c := makeCard("Clubs", i)
-		if b.CanCardBeAdded(c) {
+		if c != nil && b.CanCardBeAdded(c) {
 			t.Errorf("Receieved true for being able to add %v to board with: %v\n", c, b.PeekCards())
 		}
 	}
@@ -128,8 +128,8 @@ func TestIsCardLimitReached(t *testing.T) {
 func TestAreAllCardsDefended(t *testing.T) {
 	b := NewBoard()
 
-	att := makeCard("Clubs", 3)
-	def := makeCard("Clubs", 5)
+	att := makeCard("Clubs", 6)
+	def := makeCard("Clubs", 7)
 	b.AddAttackingCard(att)
 	if err := b.AddDefendingCard(att, def); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
@@ -140,7 +140,7 @@ func TestAreAllCardsDefended(t *testing.T) {
 	}
 
 	att = makeCard("Clubs", 10)
-	def = makeCard("Hearts", 2)
+	def = makeCard("Hearts", 6)
 	b.AddAttackingCard(att)
 	if err := b.AddDefendingCard(att, def); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
@@ -160,10 +160,10 @@ func TestAreAllCardsDefended(t *testing.T) {
 
 func TestGetAllCards(t *testing.T) {
 	b := NewBoard()
-	att := makeCard("Clubs", 3)
-	def := makeCard("Clubs", 5)
+	att := makeCard("Clubs", 6)
+	def := makeCard("Clubs", 7)
 	att2 := makeCard("Clubs", 10)
-	def2 := makeCard("Hearts", 2)
+	def2 := makeCard("Hearts", 6)
 	att3 := makeCard("Spades", 12)
 	expectedCount := 5
 	counter := 0
@@ -195,10 +195,10 @@ func TestGetAllCards(t *testing.T) {
 
 func TestGetAllCardsOnBoard(t *testing.T) {
 	b := NewBoard()
-	att := makeCard("Clubs", 3)
-	def := makeCard("Clubs", 5)
+	att := makeCard("Clubs", 7)
+	def := makeCard("Clubs", 8)
 	att2 := makeCard("Clubs", 10)
-	def2 := makeCard("Hearts", 2)
+	def2 := makeCard("Hearts", 6)
 	att3 := makeCard("Spades", 12)
 	expectedCount := 3
 	counter := 0

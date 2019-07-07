@@ -14,13 +14,13 @@ type Card struct {
 }
 
 func NewCard(kind Kind, value uint) (*Card, error) {
-	card := Card{Kind: kind, Value: value}
-	if value < 1 || value > 14 {
+	card := &Card{Kind: kind, Value: value}
+	if value < MinCardValue || value > MaxCardValue {
 		return nil, errors.New("card value incorrect")
 	}
 	for _, k := range Kinds {
 		if k == kind {
-			return &card, nil
+			return card, nil
 		}
 	}
 	return nil, errors.New("kind " + string(kind) + " is not valid\n")
@@ -39,8 +39,11 @@ func NewCardByCode(code string) (*Card, error) {
 	value, err := getCardValueByCode(valueCode)
 	if err != nil { return nil, err }
 
-	newCard := &Card{Kind: kind, Value: value}
-	return newCard, nil
+	if newCard, err := NewCard(kind, value); err != nil {
+		return nil, err
+	} else {
+		return newCard, nil
+	}
 }
 
 func CardToCode(card *Card) (string, error) {
@@ -66,7 +69,7 @@ func (this *Card) CanDefendCard(attackCard *Card, kozerKind *Kind) bool {
 }
 
 func valueToCode(value uint) (string, error) {
-	if value > 0 && value <= 10 {
+	if value >= MinCardValue && value <= 10 {
 		return fmt.Sprint(value), nil
 	} else {
 		switch value {
@@ -104,7 +107,7 @@ func getCardValueByCode(valueCode string) (uint, error) {
 		}
 		value, err := strconv.Atoi(valueCode)
 		if err != nil { return 0, err}
-		if value <= 0 || value > 10 {
+		if value < MinCardValue || value > MaxCardValue {
 			return 0, fmt.Errorf("bad card value: %v", value)
 		}
 		return uint(value), nil

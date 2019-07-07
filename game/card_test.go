@@ -8,7 +8,7 @@ import (
 
 func TestNewCard(t *testing.T) {
 	// Valid pairs
-	cardDataToTest := []*cardData{makeCardData("Clubs", 2), makeCardData("Diamonds", 13)}
+	cardDataToTest := []*cardData{makeCardData("Clubs", 6), makeCardData("Diamonds", 13)}
 	for _, cardData := range cardDataToTest {
 		_, err := NewCard(cardData.k, cardData.v)
 		if err != nil {
@@ -31,7 +31,7 @@ func TestNewCard(t *testing.T) {
 func TestNewCardByCode(t *testing.T) {
 	// Valid cases
 
-	testCodes := []string{"10D", "8S", "KH", "2C", "AC", "JD"}
+	testCodes := []string{"10D", "8S", "KH", "6C", "AC", "JD"}
 	for _, code := range testCodes {
 		_, err := NewCardByCode(code)
 		if err != nil {
@@ -41,7 +41,7 @@ func TestNewCardByCode(t *testing.T) {
 
 	// Invalid cases
 
-	testCodes = []string{"01D", "014C", "1c", "", "1", "q", "c", "-15", "?", "%"}
+	testCodes = []string{"1C", "2D", "3S", "4D", "5H", "01D", "014C", "1c", "", "1", "q", "c", "-15", "?", "%"}
 	for _, code := range testCodes {
 		_, err := NewCardByCode(code)
 		if err == nil {
@@ -52,7 +52,7 @@ func TestNewCardByCode(t *testing.T) {
 
 func TestCardToCode(t *testing.T) {
 
-	for n := 2; n < 15; n++ {
+	for n := 6; n < 15; n++ {
 		for _, c := range []string{"Clubs", "Hearts", "Diamonds", "Spades"} {
 			var valueString string
 			if n <= 10 {
@@ -89,11 +89,11 @@ func TestCanDefendCard(t *testing.T) {
 	// Valid pairs
 	cardPairsToTest = []cardPair{
 		{makeCard("Clubs", 13), makeCard("Clubs", 14)},
-		{makeCard("Clubs", 2), makeCard("Clubs", 13)},
+		{makeCard("Clubs", 6), makeCard("Clubs", 13)},
 		{makeCard("Hearts", 13), makeCard("Hearts", 14)},
-		{makeCard("Clubs", 14), makeCard("Hearts", 2)},
-		{makeCard("Clubs", 2), makeCard("Hearts", 2)},
-		{makeCard("Clubs", 2), makeCard("Hearts", 10)},
+		{makeCard("Clubs", 14), makeCard("Hearts", 6)},
+		{makeCard("Clubs", 6), makeCard("Hearts", 6)},
+		{makeCard("Clubs", 6), makeCard("Hearts", 10)},
 	}
 
 	for _, cardPair := range cardPairsToTest {
@@ -105,10 +105,10 @@ func TestCanDefendCard(t *testing.T) {
 	// Invalid pairs
 	cardPairsToTest = []cardPair{
 		{makeCard("Clubs", 14), makeCard("Clubs", 13)},
-		{makeCard("Clubs", 2), makeCard("Clubs", 2)},
+		{makeCard("Clubs", 6), makeCard("Clubs", 6)},
 		{makeCard("Hearts", 14), makeCard("Hearts", 13)},
-		{makeCard("Hearts", 2), makeCard("Clubs", 2)},
-		{makeCard("Hearts", 2), makeCard("Clubs", 3)},
+		{makeCard("Hearts", 6), makeCard("Clubs", 6)},
+		{makeCard("Hearts", 6), makeCard("Clubs", 7)},
 	}
 	for _, cardPair := range cardPairsToTest {
 		if cardPair.defendingCard.CanDefendCard(cardPair.attackingCard, &kozerKind) {
