@@ -33,91 +33,29 @@ func TestCreateGame(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		body := httpPayloadObjects.CreateGameRequestObject{
-			NumOfPlayers: testCase.numOfPlayers,
-			PlayerName:   testCase.name,
-		}
-		jsonBody, err := json.Marshal(body)
+		err := helperCreateGame(testCase.numOfPlayers, testCase.name, true, testCase.expectedCode)
 		if err != nil {
-			t.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
-		}
-		req, err := http.NewRequest("POST", "/createGame", bytes.NewBuffer(jsonBody))
-		if err != nil {
-			t.Fatalf("Error occurred: %s\n", err.Error())
-		}
-
-		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(createGame)
-		handler.ServeHTTP(rr, req)
-
-		if status := rr.Code; status != testCase.expectedCode {
-			t.Errorf("Create game handler returned wrong status code: got %v want %v\nResponse: %s\n",
-				status, testCase.expectedCode, rr.Body.String())
+			t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
 		}
 	}
 
 	// Test creating more than one game
-	body1 := httpPayloadObjects.CreateGameRequestObject{
-		NumOfPlayers: 3,
-		PlayerName:   "player1",
-	}
-
-	jsonBody1, err := json.Marshal(body1)
+	err := helperCreateGame(3, "player1", false, 200)
 	if err != nil {
-		t.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
+		t.Fatalf("Error: %s\nTest creating several games. First game error\n", err.Error())
 	}
-	req, err := http.NewRequest("POST", "/createGame", bytes.NewBuffer(jsonBody1))
+
+	err = helperCreateGame(3, "player2", true, 400)
 	if err != nil {
-		t.Fatalf("Error occurred: %s\n", err.Error())
+		t.Fatalf("Error: %s\nTest creating several games. Second game error\n", err.Error())
 	}
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(createGame)
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != 200 {
-		t.Errorf("Create game handler returned wrong status code: got %v want %v\nResponse: %s\n",
-			status, 200, rr.Body.String())
-	}
-
-	body2 := httpPayloadObjects.CreateGameRequestObject{
-		NumOfPlayers: 3,
-		PlayerName:   "player2",
-	}
-
-	jsonBody2, err := json.Marshal(body2)
-	if err != nil {
-		t.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
-	}
-	req2, err := http.NewRequest("POST", "/createGame", bytes.NewBuffer(jsonBody2))
-	if err != nil {
-		t.Fatalf("Error occurred: %s\n", err.Error())
-	}
-
-	rr2 := httptest.NewRecorder()
-	handler.ServeHTTP(rr2, req2)
-
-	if status := rr2.Code; status != 400 {
-		t.Errorf("Create game handler returned wrong status code: got %v want %v\nResponse:%s\n",
-			status, 400, rr2.Body.String())
-	}
-	unCreateGame()
-}
-
-func TestCreateGame2Players( t *testing.T) {
-	err := testCreateGameXPlayers(2, "niv", true); if err != nil {
+	// Test valid creation with different amount of players
+	err = helperCreateGame(2, "niv", true, 200); if err != nil {
 		t.Fatalf(err.Error())
 	}
-}
 
-func TestCreateGame3Players( t *testing.T) {
-	err := testCreateGameXPlayers(3, "niv", true); if err != nil {
-		t.Fatalf(err.Error())
-	}
-}
-
-func TestCreateGame4Players( t *testing.T) {
-	err := testCreateGameXPlayers(4, "niv", true); if err != nil {
+	err = helperCreateGame(4, "niv", true, 200); if err != nil {
 		t.Fatalf(err.Error())
 	}
 }
@@ -130,114 +68,57 @@ func TestJoinGame(t *testing.T) {
 	testCases := []struct {
 		name         string
 		expectedCode int
+		create		 bool
 	}{
-		{name: "niv", expectedCode: 400},  // Test joining when game not created
-		{name: "", expectedCode: 400},  // Test joining with no name
-		{expectedCode: 400},  // Test joining with name nil
-		{name: "?", expectedCode: 400},  // Illegal name
-		{name: "|", expectedCode: 400},  // Illegal name
-		{name: "%", expectedCode: 400},  // Illegal name
-		{name: "~", expectedCode: 400},  // Illegal name
-		{name: "/", expectedCode: 400},  // Illegal name
-		{name: "\\", expectedCode: 400},  // Illegal name
+		{name: "niv", expectedCode: 400, create: false},  // Test joining when game not created
+		{name: "", expectedCode: 400, create: true},  // Test joining with no name
+		{expectedCode: 400, create: true},  // Test joining with name nil
+		{name: "?", expectedCode: 400, create: true},  // Illegal name
+		{name: "|", expectedCode: 400, create: true},  // Illegal name
+		{name: "%", expectedCode: 400, create: true},  // Illegal name
+		{name: "~", expectedCode: 400, create: true},  // Illegal name
+		{name: "/", expectedCode: 400, create: true},  // Illegal name
+		{name: "\\", expectedCode: 400, create: true},  // Illegal name
 	}
 
 	for _, testCase := range testCases {
 
-		body := httpPayloadObjects.JoinGameRequestObject{
-			PlayerName: testCase.name,
-		}
-		jsonBody, err := json.Marshal(body)
-		if err != nil {
-			t.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
-		}
-		req, err := http.NewRequest("POST", "/joinGame", bytes.NewBuffer(jsonBody))
-		if err != nil {
-			t.Fatalf("Error occurred: %s\n", err.Error())
+		if testCase.create {
+			if err := helperCreateGame(2, "genericCreatorName", false, 200);
+			err != nil {
+				t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
+			}
 		}
 
-		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(joinGame)
-		handler.ServeHTTP(rr, req)
-
-		if status := rr.Code; status != testCase.expectedCode {
-			t.Errorf("Join game handler returned wrong status code: got %v want %v\nResponse: %s\n",
-				status, testCase.expectedCode, rr.Body.String())
+		if err := helperJoinGame(testCase.name, testCase.expectedCode); err != nil {
+			unCreateGame()
+			t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
 		}
+
+		unCreateGame()
 	}
 
 	// Create game with 2 players
 	name := "testniv"
-	expectedCode := 200
 
-	if err := testCreateGameXPlayers(2, name, false); err != nil {
-		t.Fatalf(err.Error())
+	if err := helperCreateGame(2, name, false, 200); err != nil {
+		t.Fatalf("Could not create game with 2 players. Error: %s\n", err.Error())
 	}
 
 	// Test join player with same name used for creation
-	body := httpPayloadObjects.JoinGameRequestObject{
-		PlayerName: name,
-	}
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		t.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
-	}
-	req, err := http.NewRequest("POST", "/joinGame", bytes.NewBuffer(jsonBody))
-	if err != nil {
-		t.Fatalf("Error occurred: %s\n", err.Error())
+	if err := helperJoinGame(name, 400); err != nil {
+		t.Fatalf("Error while testing for joining with same name. Error: %s\n", err.Error())
 	}
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(joinGame)
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != 400 {
-		t.Errorf("Join game handler returned wrong status code: got %v want %v\nResponse: %s\n",
-			status, 400, rr.Body.String())
-	}
 
 	// Join second player properly
-	body = httpPayloadObjects.JoinGameRequestObject{
-		PlayerName: "testniv3",
-	}
-	jsonBody, err = json.Marshal(body)
-	if err != nil {
-		t.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
-	}
-	req, err = http.NewRequest("POST", "/joinGame", bytes.NewBuffer(jsonBody))
-	if err != nil {
-		t.Fatalf("Error occurred: %s\n", err.Error())
-	}
-
-	rr = httptest.NewRecorder()
-	handler = http.HandlerFunc(joinGame)
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != expectedCode {
-		t.Errorf("Join game handler returned wrong status code: got %v want %v\n Response: %s\n",
-			status, expectedCode, rr.Body.String())
+	if err := helperJoinGame("testniv3", 200); err != nil {
+		t.Fatalf("Could not join another player to game. Error: %s\n", err.Error())
 	}
 
 	// Test try joining a running game
-	body = httpPayloadObjects.JoinGameRequestObject{
-		PlayerName: name,
-	}
-	jsonBody, err = json.Marshal(body)
-	if err != nil {
-		t.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
-	}
-	req, err = http.NewRequest("POST", "/joinGame", bytes.NewBuffer(jsonBody))
-	if err != nil {
-		t.Fatalf("Error occurred: %s\n", err.Error())
-	}
-
-	rr = httptest.NewRecorder()
-	handler = http.HandlerFunc(joinGame)
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != 400 {
-		t.Errorf("Join game handler returned wrong status code: got %v want %v\nResponse: %s\n",
-			status, 400, rr.Body.String())
+	if err := helperJoinGame("newName4", 400); err != nil {
+		t.Fatalf("Error while testing for joining a running game. Error: %s\n", err.Error())
 	}
 
 	unCreateGame()
@@ -273,19 +154,19 @@ func TestLeaveGame(t *testing.T) {
 
 	for _, testCase := range testCases {
 		if testCase.running {
-			if err := testCreateGameAndJoin(len(testCase.createNames), testCase.createNames, false);
+			if err := helperCreateGameAndJoin(len(testCase.createNames), testCase.createNames, false);
 			err != nil {
 				t.Errorf("Error: %s\nTest case: %v\n", err.Error(), testCase)
 			}
 		} else {
 			if testCase.create {
 				if testCase.createNames != nil {
-					if err := testCreateGameAndJoin(len(testCase.createNames)+1, testCase.createNames, false);
+					if err := helperCreateGameAndJoin(len(testCase.createNames)+1, testCase.createNames, false);
 						err != nil {
 						t.Errorf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
 					}
 				} else {
-					if err := testCreateGameAndJoin(2, []string{"genericName"}, false);
+					if err := helperCreateGameAndJoin(2, []string{"genericName"}, false);
 						err != nil {
 						t.Errorf("Error: %s\nTest case: %v\n", err.Error(), testCase)
 					}
@@ -314,11 +195,29 @@ func TestLeaveGame(t *testing.T) {
 				status, testCase.expectedCode, rr.Body.String(), testCase)
 		}
 
+		jsonResp := rr.Body.Bytes()
+		if testCase.expectedCode == 200 { // Check for proper response
+			resp := httpPayloadObjects.SuccessResponse{}
+			if err := json.Unmarshal(jsonResp, &resp); err != nil {
+				t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
+			}
+		} else {
+			resp := httpPayloadObjects.ErrorResponse{}
+			if err := json.Unmarshal(jsonResp, &resp); err != nil {
+				t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
+			}
+		}
 		unCreateGame()
 	}
 }
 
 func TestAttack(t *testing.T) {
+
+	// Attacking with invalid card code
+	// Attacking with invalid player name
+	// Attacking with non existing player name
+	// Attacking with no game created
+	// Attacking with no game started
 
 }
 
@@ -362,10 +261,9 @@ func checkMethodsNotAllowed(endpoint string, methodAllowed string, fn func(w htt
 	return nil
 }
 
-func testCreateGameXPlayers(n int, name string, shouldUncreate bool) error {
-	expectedCode := 200
+func helperCreateGame(playerNum int, name string, shouldUncreate bool, expectedCode int) error {
 	body := httpPayloadObjects.CreateGameRequestObject{
-		NumOfPlayers: n,
+		NumOfPlayers: playerNum,
 		PlayerName:   name,
 	}
 	jsonBody, err := json.Marshal(body)
@@ -387,14 +285,22 @@ func testCreateGameXPlayers(n int, name string, shouldUncreate bool) error {
 	}
 
 	jsonResp := rr.Body.Bytes()
-	resp := httpPayloadObjects.PlayerJoinedResponse{}
-	if err := json.Unmarshal(jsonResp, &resp); err != nil {
-		unCreateGame()
-		return err
-	}
-	if resp.PlayerName != name {
-		unCreateGame()
-		return fmt.Errorf("Expected returned name to be %s, instead got %s\n", name, resp.PlayerName)
+	if expectedCode == 200 { // Check for proper response
+		resp := httpPayloadObjects.PlayerJoinedResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			unCreateGame()
+			return err
+		}
+		if resp.PlayerName != name {
+			unCreateGame()
+			return fmt.Errorf("Expected returned name to be %s, instead got %s\n", name, resp.PlayerName)
+		}
+	} else {
+		resp := httpPayloadObjects.ErrorResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			unCreateGame()
+			return err
+		}
 	}
 
 	if shouldUncreate {
@@ -404,8 +310,7 @@ func testCreateGameXPlayers(n int, name string, shouldUncreate bool) error {
 	return nil
 }
 
-func testJoinGame(name string) error {
-	expectedCode := 200
+func helperJoinGame(name string, expectedCode int) error {
 
 	body := httpPayloadObjects.JoinGameRequestObject{
 		PlayerName: name,
@@ -428,17 +333,36 @@ func testJoinGame(name string) error {
 			status, expectedCode, rr.Body.String())
 	}
 
+	jsonResp := rr.Body.Bytes()
+	if expectedCode == 200 { // Check for proper response
+		resp := httpPayloadObjects.PlayerJoinedResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			unCreateGame()
+			return err
+		}
+		if resp.PlayerName != name {
+			unCreateGame()
+			return fmt.Errorf("Expected returned name to be %s, instead got %s\n", name, resp.PlayerName)
+		}
+	} else {
+		resp := httpPayloadObjects.ErrorResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			unCreateGame()
+			return err
+		}
+	}
+
 	return nil
 }
 
-func testCreateGameAndJoin(playerNum int, playerNames []string, shouldUncreate bool) error {
+func helperCreateGameAndJoin(playerNum int, playerNames []string, shouldUncreate bool) error {
 	// Create game
-	err := testCreateGameXPlayers(playerNum, playerNames[0], false); if err != nil {
+	err := helperCreateGame(playerNum, playerNames[0], false, 200); if err != nil {
 		return err
 	}
 
 	for i := 1; i < len(playerNames); i++ {
-		if err := testJoinGame(playerNames[i]); err != nil {
+		if err := helperJoinGame(playerNames[i], 200); err != nil {
 			unCreateGame()
 			return err
 		}

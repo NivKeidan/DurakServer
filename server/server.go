@@ -624,12 +624,7 @@ func extractJSONData(t httpPayloadObjects.JSONRequestPayload, r *http.Request) e
 func createSuccessJson() httpPayloadObjects.JSONResponseData {
 	// Default HTTP JSON body error response
 
-	type errorResponse struct {
-		Success bool `json:"success"`
-		Message string `json:"message"`
-	}
-
-	resp := errorResponse{Message: "", Success: true}
+	resp := httpPayloadObjects.SuccessResponse{Message: "", Success: true}
 	return resp
 }
 
@@ -654,12 +649,7 @@ func isMethodAllowed(request *http.Request, allowedMethods []string) bool {
 func createErrorJson(errorMessage string) string {
 	// Default HTTP JSON body error response
 
-	type errorResponse struct {
-		Success bool `json:"success"`
-		Message string `json:"message"`
-	}
-
-	resp := errorResponse{Message: errorMessage, Success: false}
+	resp := httpPayloadObjects.ErrorResponse{Message: errorMessage, Success: false}
 	js, _ := json.Marshal(resp)
 	return string(js)
 

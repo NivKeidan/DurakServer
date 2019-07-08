@@ -51,6 +51,16 @@ type PlayerJoinedResponse struct {
 	IdCode string `json:"idCode"`
 }
 
+type ErrorResponse struct {
+	Success bool `json:"success"`
+	Message string `json:"message"`
+}
+
+type SuccessResponse struct {
+	Success bool `json:"success"`
+	Message string `json:"message"`
+}
+
 // Customize ability for single player clients
 
 type CustomizableJSONResponseData interface {
