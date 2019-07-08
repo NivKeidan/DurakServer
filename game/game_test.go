@@ -14,20 +14,17 @@ func TestGetPlayerByName(t *testing.T) {
 	playerNames := []string{"player1", "player2", "player3"}
 	g, err := NewGame(playerNames...)
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 
 	// Valid
 	for _, playerName := range playerNames {
 		p, err := g.GetPlayerByName(playerName)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		if p == nil {
-			t.Errorf("Could not get player with name %s\n", playerName)
-			return
+			t.Fatalf("Could not get player with name %s\n", playerName)
 		}
 	}
 
@@ -35,8 +32,7 @@ func TestGetPlayerByName(t *testing.T) {
 	for _, playerName := range []string{"", "PlAyEr1", "%@$#$#", "/////\\\\"} {
 		p, err := g.GetPlayerByName(playerName)
 		if err == nil || p != nil {
-			t.Errorf("Successfully retrieved player with name %s\n", playerName)
-			return
+			t.Fatalf("Successfully retrieved player with name %s\n", playerName)
 		}
 	}
 }
@@ -44,8 +40,7 @@ func TestGetPlayerByName(t *testing.T) {
 func TestGetPlayersCardsMap(t *testing.T) {
 	g, err := NewGame([]string{"player1", "player2", "player3"}...)
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	g.GetPlayersCardsMap()
 }
@@ -55,8 +50,7 @@ func TestEndGameWithLoser(t *testing.T) {
 
 	g, err := NewGame([]string{"player1", "player2"}...)
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 
 	// Empty deck
@@ -73,16 +67,14 @@ func TestEndGameWithLoser(t *testing.T) {
 	// Set up player cards
 	p1, err := g.GetPlayerByName("player1")
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	c1 := makeCard("Clubs", 13)
 	p1.TakeCards(c1)
 
 	p2, err := g.GetPlayerByName("player1")
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	c2 := makeCard("Clubs", 9)
 	p2.TakeCards(c2)
@@ -92,24 +84,20 @@ func TestEndGameWithLoser(t *testing.T) {
 	g.defendingPlayer = p2
 
 	if err = g.Attack(p1, c1); err != nil {
-		t.Errorf("Error occurred while attacking: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred while attacking: %s\n", err.Error())
 	}
 
 	// Test invalid
 	p := g.GetLosingPlayer()
 	if p != nil {
-		t.Errorf("Receieved losing player %s\n", p.Name)
-		return
+		t.Fatalf("Receieved losing player %s\n", p.Name)
 	}
 	if g.IsGameOver() {
-		t.Errorf("Game should not be over\n")
-		return
+		t.Fatalf("Game should not be over\n")
 	}
 
 	if g.IsDraw() {
-		t.Errorf("Game should not be over\n")
-		return
+		t.Fatalf("Game should not be over\n")
 	}
 
 	if err := g.PickUpCards(p2); err != nil {
@@ -118,17 +106,14 @@ func TestEndGameWithLoser(t *testing.T) {
 
 	// Test valid
 	if !g.IsGameOver() {
-		t.Errorf("Game should be over\n")
-		return
+		t.Fatalf("Game should be over\n")
 	}
 	if g.IsDraw() {
-		t.Errorf("Game should not be draw\n")
-		return
+		t.Fatalf("Game should not be draw\n")
 	}
 	p = g.GetLosingPlayer()
 	if p == nil {
-		t.Errorf("Did not receieve any losing player\n")
-		return
+		t.Fatalf("Did not receieve any losing player\n")
 	}
 }
 
@@ -137,8 +122,7 @@ func TestEndGameWithDraw(t *testing.T) {
 
 	g, err := NewGame([]string{"player1", "player2"}...)
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 
 	// Empty deck
@@ -155,16 +139,14 @@ func TestEndGameWithDraw(t *testing.T) {
 	// Set up player cards
 	p1, err := g.GetPlayerByName("player1")
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	c1 := makeCard("Clubs", 13)
 	p1.TakeCards(c1)
 
 	p2, err := g.GetPlayerByName("player1")
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	c2 := makeCard("Clubs", 9)
 	p2.TakeCards(c2)
@@ -174,49 +156,40 @@ func TestEndGameWithDraw(t *testing.T) {
 	g.defendingPlayer = p1
 
 	if err = g.Attack(p2, c2); err != nil {
-		t.Errorf("Error occurred while attacking: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred while attacking: %s\n", err.Error())
 	}
 
 	// Test invalid
 	p := g.GetLosingPlayer()
 	if p != nil {
-		t.Errorf("Receieved losing player %s\n", p.Name)
-		return
+		t.Fatalf("Receieved losing player %s\n", p.Name)
 	}
 	if g.IsGameOver() {
-		t.Errorf("Game should not be over\n")
-		return
+		t.Fatalf("Game should not be over\n")
 	}
 
 	if g.IsDraw() {
-		t.Errorf("Game should not be over\n")
-		return
+		t.Fatalf("Game should not be over\n")
 	}
 
 	if err = g.Defend(p1, c2, c1); err != nil {
-		t.Errorf("Error ocurred while trying to defend: %s\n", err.Error())
-		return
+		t.Fatalf("Error ocurred while trying to defend: %s\n", err.Error())
 	}
 
 	if err = g.MoveToBita(p1); err != nil {
-		t.Errorf("Error occurred while moving cards to bita: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred while moving cards to bita: %s\n", err.Error())
 	}
 
 	// Test valid
 	if !g.IsGameOver() {
-		t.Errorf("Game should be over\n")
-		return
+		t.Fatalf("Game should be over\n")
 	}
 	if !g.IsDraw() {
-		t.Errorf("Game should be draw\n")
-		return
+		t.Fatalf("Game should be draw\n")
 	}
 	p = g.GetLosingPlayer()
 	if p != nil {
-		t.Errorf("Received a losing player %s while draw is expectedr\n", p.Name)
-		return
+		t.Fatalf("Received a losing player %s while draw is expectedr\n", p.Name)
 	}
 
 }
@@ -225,8 +198,7 @@ func TestPickUpCards(t *testing.T) {
 	playerNames := []string{"player1", "player2"}
 	g, err := NewGame(playerNames...)
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 
 	// Test wrong player trying to pick up cards
@@ -237,8 +209,7 @@ func TestPickUpCards(t *testing.T) {
 	// test with empty board
 	b := g.board
 	if err := g.PickUpCards(g.defendingPlayer); err == nil {
-		t.Errorf("Expected error for an empty board\n")
-		return
+		t.Fatalf("Expected error for an empty board\n")
 	}
 
 	// test with one undefended card
@@ -249,8 +220,7 @@ func TestPickUpCards(t *testing.T) {
 	g.board = b
 
 	if err := g.PickUpCards(g.defendingPlayer); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	success := false
 	for _, c := range defendingPlayer.PeekCards() {
@@ -259,8 +229,7 @@ func TestPickUpCards(t *testing.T) {
 		}
 	}
 	if !success {
-		t.Errorf("could not find %v in player's hand\nReceieved hand:%v\n", c1, defendingPlayer.PeekCards())
-		return
+		t.Fatalf("could not find %v in player's hand\nReceieved hand:%v\n", c1, defendingPlayer.PeekCards())
 	}
 
 	// test with one defended card
@@ -270,14 +239,12 @@ func TestPickUpCards(t *testing.T) {
 	c2 := makeCard("Clubs", 10)
 	b.AddAttackingCard(c1)
 	if err := b.AddDefendingCard(c1, c2); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	g.board = b
 
 	if err := g.PickUpCards(g.defendingPlayer); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	success1, success2 := false, false
 	for _, c := range defendingPlayer.PeekCards() {
@@ -299,15 +266,13 @@ func TestPickUpCards(t *testing.T) {
 	c3 := makeCard("Hearts", 13)
 	b.AddAttackingCard(c1)
 	if err := b.AddDefendingCard(c1, c2); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	b.AddAttackingCard(c3)
 	g.board = b
 
 	if err := g.PickUpCards(g.defendingPlayer); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	success1, success2, success3 := false, false, false
 	for _, c := range defendingPlayer.PeekCards() {
@@ -332,8 +297,7 @@ func TestMoveToBita(t *testing.T) {
 	playerNames := []string{"player1", "player2"}
 	g, err := NewGame(playerNames...)
 	if err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 
 	// Test wrong player trying to pick up cards
@@ -344,8 +308,7 @@ func TestMoveToBita(t *testing.T) {
 	// test with empty board
 	b := g.board
 	if err := g.MoveToBita(g.defendingPlayer); err == nil {
-		t.Errorf("Expected error for an empty board\n")
-		return
+		t.Fatalf("Expected error for an empty board\n")
 	}
 
 	// test with one undefended card
@@ -355,8 +318,7 @@ func TestMoveToBita(t *testing.T) {
 	g.board = b
 
 	if err := g.MoveToBita(g.defendingPlayer); err == nil {
-		t.Errorf("Expected error\n")
-		return
+		t.Fatalf("Expected error\n")
 	}
 	// test with one defended card
 
@@ -364,14 +326,12 @@ func TestMoveToBita(t *testing.T) {
 	c2 := makeCard("Clubs", 10)
 	b.AddAttackingCard(c1)
 	if err := b.AddDefendingCard(c1, c2); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	g.board = b
 
 	if err := g.MoveToBita(g.defendingPlayer); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	// test with one defended and one undefended
 
@@ -379,15 +339,13 @@ func TestMoveToBita(t *testing.T) {
 	c3 := makeCard("Hearts", 13)
 	b.AddAttackingCard(c1)
 	if err := b.AddDefendingCard(c1, c2); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 	b.AddAttackingCard(c3)
 	g.board = b
 
 	if err := g.MoveToBita(g.defendingPlayer); err == nil {
-		t.Errorf("Expected error\n")
-		return
+		t.Fatalf("Expected error\n")
 	}
 
 }
@@ -431,8 +389,7 @@ func TestDefend(t *testing.T) {
 		playerNames := []string{"player1", "player2"}
 		g, err := NewGame(playerNames...)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		g.KozerCard = kozerCard
 
@@ -451,8 +408,7 @@ func TestDefend(t *testing.T) {
 		playerNames := []string{"player1", "player2"}
 		g, err := NewGame(playerNames...)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		g.KozerCard = kozerCard
 
@@ -564,23 +520,20 @@ func TestAttack(t *testing.T) {
 	for _, testCase := range invalidTestCases {
 		g, err := NewGame(testCase.playerNames...)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 
 		g.board = testCase.board
 
 		startingPlayer, err := g.GetPlayerByName(testCase.startingPlayerName)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		g.startingPlayer = startingPlayer
 
 		defendingPlayer, err := g.GetPlayerByName(testCase.defendingPlayerName)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		g.defendingPlayer = defendingPlayer
 
@@ -590,8 +543,7 @@ func TestAttack(t *testing.T) {
 
 		attackingPlayer, err := g.GetPlayerByName(testCase.attackingPlayerName)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		attackingPlayer.cards = testCase.attackingPlayerCards
 
@@ -605,23 +557,20 @@ func TestAttack(t *testing.T) {
 	for _, testCase := range validTestCases {
 		g, err := NewGame(testCase.playerNames...)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 
 		g.board = testCase.board
 
 		startingPlayer, err := g.GetPlayerByName(testCase.startingPlayerName)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		g.startingPlayer = startingPlayer
 
 		defendingPlayer, err := g.GetPlayerByName(testCase.defendingPlayerName)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		g.defendingPlayer = defendingPlayer
 
@@ -631,8 +580,7 @@ func TestAttack(t *testing.T) {
 
 		attackingPlayer, err := g.GetPlayerByName(testCase.attackingPlayerName)
 		if err != nil {
-			t.Errorf("Error occurred: %s\n", err.Error())
-			return
+			t.Fatalf("Error occurred: %s\n", err.Error())
 		}
 		attackingPlayer.cards = testCase.attackingPlayerCards
 

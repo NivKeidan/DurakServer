@@ -69,8 +69,7 @@ func TestAddDefendingCard(t *testing.T) {
 
 	b.AddAttackingCard(c1)
 	if err := b.AddDefendingCard(c1, c2); err != nil {
-		t.Errorf("Error occurred: %s\n", err.Error())
-		return
+		t.Fatalf("Error occurred: %s\n", err.Error())
 	}
 
 	counter := 0
@@ -79,18 +78,15 @@ func TestAddDefendingCard(t *testing.T) {
 	for _, c := range b.PeekCardsOnBoard() {
 		counter++
 		if c.attackingCard != c1 {
-			t.Errorf("Expected attacking card to be %v, instead got %v\n", c1, c.attackingCard)
-			return
+			t.Fatalf("Expected attacking card to be %v, instead got %v\n", c1, c.attackingCard)
 		}
 		if c.defendingCard != c2 {
-			t.Errorf("Expected defending card to be %v, instead got %v\n", c2, c.defendingCard)
-			return
+			t.Fatalf("Expected defending card to be %v, instead got %v\n", c2, c.defendingCard)
 		}
 	}
 
 	if counter != expectedCounter {
-		t.Errorf("Expected counter to be %d, instead got %d\n", expectedCounter, counter)
-		return
+		t.Fatalf("Expected counter to be %d, instead got %d\n", expectedCounter, counter)
 	}
 }
 

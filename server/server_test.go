@@ -218,22 +218,44 @@ func TestAttack(t *testing.T) {
 	// Attacking with non existing player name
 	// Attacking with no game created
 	// Attacking with no game started
+	// Attacking with nil vars
 
 }
 
 func TestDefend(t *testing.T) {
-
+	// Defending with invalid attacking card code
+	// Defending with invalid defending card code
+	// Defending with invalid player name
+	// Defending with non existing player name
+	// Defending when no game created
+	// Defending when no game started
+	// Defending with nil var
 }
 
 func TestTakeCards(t *testing.T) {
+
+	// Game not created
+	// Game not started
+	// invalid name
+	// non existing name
 
 }
 
 func TestMoveCardsToBita(t *testing.T) {
 
+	// Game not created
+	// Game not started
+	// invalid name
+	// non existing name
+
 }
 
 func TestRestartGame(t *testing.T) {
+
+	// game not created
+	// game not started
+	// player name not valid
+	// player name not existing
 
 }
 
