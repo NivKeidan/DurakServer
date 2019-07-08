@@ -229,6 +229,11 @@ func TestPickUpCards(t *testing.T) {
 		return
 	}
 
+	// Test wrong player trying to pick up cards
+	if err := g.PickUpCards(g.startingPlayer); err == nil {
+		t.Fatalf("no error when wrong player trying to pick up cards\n")
+	}
+
 	// test with empty board
 	b := g.board
 	if err := g.PickUpCards(g.defendingPlayer); err == nil {
@@ -329,6 +334,11 @@ func TestMoveToBita(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 		return
+	}
+
+	// Test wrong player trying to pick up cards
+	if err := g.MoveToBita(g.startingPlayer); err == nil {
+		t.Fatalf("No error when wrong player trying to move to bita\n")
 	}
 
 	// test with empty board
