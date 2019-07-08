@@ -132,6 +132,10 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if isGameCreated {
+		http.Error(w, createErrorJson("game has already been created"), 400)
+		return
+	}
 	handleCreateGame()
 	appStreamer.Publish(getGameStatusResponse())
 
@@ -139,6 +143,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	if err := validateJoinGame(playerName); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
+		unCreateGame()
 		return
 	}
 
@@ -146,6 +151,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	if err := handlePlayerJoin(playerName, uniquePlayerCode); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		unCreateGame()
 		return
 	}
 
@@ -157,6 +163,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName, uniquePlayerCode), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
+		unCreateGame()
 		return
 	}
 }
@@ -505,7 +512,7 @@ func validateJoinGame(playerName string) error {
 
 func validateCreateGame(requestData httpPayloadObjects.CreateGameRequestObject) error {
 	if requestData.NumOfPlayers < 2 || requestData.NumOfPlayers > 4 {
-		return errors.New("can not start game with less than 2 playerNames or more than four playerNames")
+		return errors.New("can not start game with less than 2 players or more than four players")
 	}
 	return nil
 }
@@ -676,6 +683,17 @@ func createPlayerIdentificationString() string {
 }
 
 // Game Logic
+
+func unCreateGame() {
+	playerNames = make([]string, 0)
+	clientIdentification = make(map[string]map[string]bool)
+	isGameCreated = false
+	if isGameStarted {
+		currentGame = nil
+		isGameStarted = false
+	}
+
+}
 
 func startGame() error {
 
