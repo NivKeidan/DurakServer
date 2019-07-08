@@ -1,7 +1,7 @@
 package stream
 
 import (
-	"DurakGo/server/httpPayloadObjects"
+	"DurakGo/server/httpPayloadTypes"
 	"net/http"
 )
 
@@ -17,17 +17,17 @@ func NewAppStreamer() (appStreamer *AppStreamer) {
 	return appStreamer
 }
 
-func (this *AppStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadObjects.JSONResponseData {
+func (this *AppStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadTypes.JSONResponseData {
 
 	return this.streamer.RegisterClient(w, r)
 }
 
-func (this *AppStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadObjects.JSONResponseData) {
+func (this *AppStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData) {
 
 	this.streamer.StreamLoop(w, messageChan)
 }
 
-func (this *AppStreamer) Publish(respData httpPayloadObjects.JSONResponseData) {
+func (this *AppStreamer) Publish(respData httpPayloadTypes.JSONResponseData) {
 
 	this.streamer.Publish(respData)
 

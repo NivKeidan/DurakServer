@@ -1,7 +1,7 @@
 package server
 
 import (
-	"DurakGo/server/httpPayloadObjects"
+	"DurakGo/server/httpPayloadTypes"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -174,7 +174,7 @@ func TestLeaveGame(t *testing.T) {
 			}
 		}
 
-		body := httpPayloadObjects.LeaveGameRequestObject{
+		body := httpPayloadTypes.LeaveGameRequestObject{
 			PlayerName: testCase.leavingPlayerName,
 		}
 		jsonBody, err := json.Marshal(body)
@@ -197,12 +197,12 @@ func TestLeaveGame(t *testing.T) {
 
 		jsonResp := rr.Body.Bytes()
 		if testCase.expectedCode == 200 { // Check for proper response
-			resp := httpPayloadObjects.SuccessResponse{}
+			resp := httpPayloadTypes.SuccessResponse{}
 			if err := json.Unmarshal(jsonResp, &resp); err != nil {
 				t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
 			}
 		} else {
-			resp := httpPayloadObjects.ErrorResponse{}
+			resp := httpPayloadTypes.ErrorResponse{}
 			if err := json.Unmarshal(jsonResp, &resp); err != nil {
 				t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
 			}
@@ -262,7 +262,7 @@ func checkMethodsNotAllowed(endpoint string, methodAllowed string, fn func(w htt
 }
 
 func helperCreateGame(playerNum int, name string, shouldUncreate bool, expectedCode int) error {
-	body := httpPayloadObjects.CreateGameRequestObject{
+	body := httpPayloadTypes.CreateGameRequestObject{
 		NumOfPlayers: playerNum,
 		PlayerName:   name,
 	}
@@ -286,7 +286,7 @@ func helperCreateGame(playerNum int, name string, shouldUncreate bool, expectedC
 
 	jsonResp := rr.Body.Bytes()
 	if expectedCode == 200 { // Check for proper response
-		resp := httpPayloadObjects.PlayerJoinedResponse{}
+		resp := httpPayloadTypes.PlayerJoinedResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
 			return err
@@ -296,7 +296,7 @@ func helperCreateGame(playerNum int, name string, shouldUncreate bool, expectedC
 			return fmt.Errorf("Expected returned name to be %s, instead got %s\n", name, resp.PlayerName)
 		}
 	} else {
-		resp := httpPayloadObjects.ErrorResponse{}
+		resp := httpPayloadTypes.ErrorResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
 			return err
@@ -312,7 +312,7 @@ func helperCreateGame(playerNum int, name string, shouldUncreate bool, expectedC
 
 func helperJoinGame(name string, expectedCode int) error {
 
-	body := httpPayloadObjects.JoinGameRequestObject{
+	body := httpPayloadTypes.JoinGameRequestObject{
 		PlayerName: name,
 	}
 	jsonBody, err := json.Marshal(body)
@@ -335,7 +335,7 @@ func helperJoinGame(name string, expectedCode int) error {
 
 	jsonResp := rr.Body.Bytes()
 	if expectedCode == 200 { // Check for proper response
-		resp := httpPayloadObjects.PlayerJoinedResponse{}
+		resp := httpPayloadTypes.PlayerJoinedResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
 			return err
@@ -345,7 +345,7 @@ func helperJoinGame(name string, expectedCode int) error {
 			return fmt.Errorf("Expected returned name to be %s, instead got %s\n", name, resp.PlayerName)
 		}
 	} else {
-		resp := httpPayloadObjects.ErrorResponse{}
+		resp := httpPayloadTypes.ErrorResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
 			return err

@@ -1,4 +1,4 @@
-package httpPayloadObjects
+package httpPayloadTypes
 
 type JSONRequestPayload interface {}
 

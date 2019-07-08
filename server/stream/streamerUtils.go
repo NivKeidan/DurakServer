@@ -1,12 +1,12 @@
 package stream
 
 import (
-	"DurakGo/server/httpPayloadObjects"
+	"DurakGo/server/httpPayloadTypes"
 	"encoding/json"
 	"fmt"
 )
 
-func convertToString(respData httpPayloadObjects.JSONResponseData) string {
+func convertToString(respData httpPayloadTypes.JSONResponseData) string {
 
 	body, err := createStreamData(respData)
 	if err != nil {
@@ -18,7 +18,7 @@ func convertToString(respData httpPayloadObjects.JSONResponseData) string {
 	return body
 }
 
-func createStreamData(jsonObj httpPayloadObjects.JSONResponseData) (string, error) {
+func createStreamData(jsonObj httpPayloadTypes.JSONResponseData) (string, error) {
 
 	js, err := json.Marshal(jsonObj)
 	if err != nil {
@@ -28,25 +28,25 @@ func createStreamData(jsonObj httpPayloadObjects.JSONResponseData) (string, erro
 	return str, nil
 }
 
-func getEventName(obj httpPayloadObjects.JSONResponseData) string {
-	if _, ok := obj.(*httpPayloadObjects.GameStatusResponse); ok {
+func getEventName(obj httpPayloadTypes.JSONResponseData) string {
+	if _, ok := obj.(*httpPayloadTypes.GameStatusResponse); ok {
 		return "gamestatus"
 	}
 
-	if _, ok := obj.(*httpPayloadObjects.StartGameResponse); ok {
+	if _, ok := obj.(*httpPayloadTypes.StartGameResponse); ok {
 		return "gamestarted"
 	}
 
-	if _, ok := obj.(*httpPayloadObjects.GameRestartResponse); ok {
+	if _, ok := obj.(*httpPayloadTypes.GameRestartResponse); ok {
 		return "gamerestarted"
 	}
 
 
-	if _, ok := obj.(*httpPayloadObjects.GameUpdateResponse); ok {
+	if _, ok := obj.(*httpPayloadTypes.GameUpdateResponse); ok {
 		return "gameupdated"
 	}
 
-	if _, ok := obj.(*httpPayloadObjects.TurnUpdateResponse); ok {
+	if _, ok := obj.(*httpPayloadTypes.TurnUpdateResponse); ok {
 		return "gameupdated"
 	}
 

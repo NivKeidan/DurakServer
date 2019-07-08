@@ -1,31 +1,31 @@
 package stream
 
 import (
-	"DurakGo/server/httpPayloadObjects"
+	"DurakGo/server/httpPayloadTypes"
 	"fmt"
 	"net/http"
 )
 
 type SSEStreamer struct {
 	// Events are pushed to this channel by the main events-gathering routine
-	Notifier chan httpPayloadObjects.JSONResponseData
+	Notifier chan httpPayloadTypes.JSONResponseData
 
 	// New client connections
-	newClients chan chan httpPayloadObjects.JSONResponseData
+	newClients chan chan httpPayloadTypes.JSONResponseData
 
 	// Closed client connections
-	closingClients chan chan httpPayloadObjects.JSONResponseData
+	closingClients chan chan httpPayloadTypes.JSONResponseData
 
 	// Client connections registry
-	clients map[chan httpPayloadObjects.JSONResponseData]bool
+	clients map[chan httpPayloadTypes.JSONResponseData]bool
 }
 
 func NewSSEStreamer() (streamer *SSEStreamer) {
 	streamer = &SSEStreamer{
-		Notifier:       make(chan httpPayloadObjects.JSONResponseData),
-		newClients:     make(chan chan httpPayloadObjects.JSONResponseData),
-		closingClients: make(chan chan httpPayloadObjects.JSONResponseData),
-		clients:        make(map[chan httpPayloadObjects.JSONResponseData]bool),
+		Notifier:       make(chan httpPayloadTypes.JSONResponseData),
+		newClients:     make(chan chan httpPayloadTypes.JSONResponseData),
+		closingClients: make(chan chan httpPayloadTypes.JSONResponseData),
+		clients:        make(map[chan httpPayloadTypes.JSONResponseData]bool),
 	}
 
 	go streamer.listen()
@@ -33,12 +33,12 @@ func NewSSEStreamer() (streamer *SSEStreamer) {
 	return
 }
 
-func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadObjects.JSONResponseData {
+func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadTypes.JSONResponseData {
 
 	this.addHeaders(w)
 
 	// New client channels
-	messageChan := make(chan httpPayloadObjects.JSONResponseData)
+	messageChan := make(chan httpPayloadTypes.JSONResponseData)
 	this.newClients <- messageChan
 
 	// Handle client-side disconnection
@@ -54,7 +54,7 @@ func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request)
 
 }
 
-func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadObjects.JSONResponseData) {
+func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData) {
 
 	flusher, ok := (*w).(http.Flusher)
 
@@ -104,7 +104,7 @@ func (this *SSEStreamer) listen() {
 	}
 }
 
-func (this *SSEStreamer) Publish(respData httpPayloadObjects.JSONResponseData) {
+func (this *SSEStreamer) Publish(respData httpPayloadTypes.JSONResponseData) {
 
 	this.Notifier <- respData
 
@@ -117,6 +117,6 @@ func (this *SSEStreamer) addHeaders(writer *http.ResponseWriter) {
 
 }
 
-func (this *SSEStreamer) removeClient(msgChan chan httpPayloadObjects.JSONResponseData) {
+func (this *SSEStreamer) removeClient(msgChan chan httpPayloadTypes.JSONResponseData) {
 	this.closingClients <- msgChan
 }

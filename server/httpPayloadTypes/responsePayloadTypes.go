@@ -1,4 +1,4 @@
-package httpPayloadObjects
+package httpPayloadTypes
 
 import "DurakGo/game"
 

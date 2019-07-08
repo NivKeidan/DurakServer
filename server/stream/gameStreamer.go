@@ -1,7 +1,7 @@
 package stream
 
 import (
-	"DurakGo/server/httpPayloadObjects"
+	"DurakGo/server/httpPayloadTypes"
 	"fmt"
 	"net/http"
 )
@@ -19,12 +19,12 @@ func NewGameStreamer() (gameStreamer *GameStreamer) {
 	return gameStreamer
 }
 
-func (this *GameStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadObjects.JSONResponseData {
+func (this *GameStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadTypes.JSONResponseData {
 	return this.streamer.RegisterClient(w, r)
 }
 
-func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadObjects.JSONResponseData,
-	customizeDataFunc func(httpPayloadObjects.JSONResponseData) (httpPayloadObjects.JSONResponseData, error)) {
+func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData,
+	customizeDataFunc func(httpPayloadTypes.JSONResponseData) (httpPayloadTypes.JSONResponseData, error)) {
 	flusher, ok := (*w).(http.Flusher)
 
 	if !ok {
@@ -55,7 +55,7 @@ func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan ht
 	}
 }
 
-func (this *GameStreamer) Publish(respData httpPayloadObjects.JSONResponseData) {
+func (this *GameStreamer) Publish(respData httpPayloadTypes.JSONResponseData) {
 
 	this.streamer.Publish(respData)
 
