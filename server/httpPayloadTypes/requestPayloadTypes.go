@@ -25,3 +25,11 @@ type DefenseRequestObject struct {
 	DefendingCardCode string `json:"defendingCardCode"`
 	AttackingCardCode string `json:"attackingCardCode"`
 }
+
+type TakeCardsRequestObject struct {
+	PlayerName string `json:"playerName"`
+}
+
+type MoveCardsToBitaObject struct {
+	PlayerName string `json:"playerName"`
+}

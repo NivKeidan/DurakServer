@@ -114,7 +114,10 @@ func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Car
 	return nil
 }
 
-func (this *Game) MoveToBita() error {
+func (this *Game) MoveToBita(playerRequesting *Player) error {
+	if this.defendingPlayer != playerRequesting {
+		return errors.New("action not allowed")
+	}
 	if this.board.IsEmpty() {
 		return errors.New("board is empty")
 	}
@@ -128,8 +131,10 @@ func (this *Game) MoveToBita() error {
 	return nil
 }
 
-func (this *Game) PickUpCards() error {
-
+func (this *Game) PickUpCards(playerRequesting *Player) error {
+	if this.defendingPlayer != playerRequesting {
+		return errors.New("action not allowed")
+	}
 	if this.board.IsEmpty() {
 		return errors.New("board is empty")
 	}

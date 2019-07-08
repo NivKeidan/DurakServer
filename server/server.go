@@ -327,8 +327,6 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse request
-
-
 	requestData := httpPayloadTypes.DefenseRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
@@ -382,11 +380,21 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse request
+	requestData := httpPayloadTypes.TakeCardsRequestObject{}
+	if err := extractJSONData(&requestData, r); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
 
+	requestingPlayer, err := currentGame.GetPlayerByName(requestData.PlayerName)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
 	// Validations
 
 	// Update game
-	if err := currentGame.PickUpCards(); err != nil {
+	if err := currentGame.PickUpCards(requestingPlayer); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
@@ -409,12 +417,24 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse request
+	// Parse request
+	requestData := httpPayloadTypes.MoveCardsToBitaObject{}
+	if err := extractJSONData(&requestData, r); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
+
+	requestingPlayer, err := currentGame.GetPlayerByName(requestData.PlayerName)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), 400)
+		return
+	}
 
 	// Validations
 
 
 	// Update game
-	if err := currentGame.MoveToBita(); err != nil {
+	if err := currentGame.MoveToBita(requestingPlayer); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}

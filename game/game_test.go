@@ -112,7 +112,7 @@ func TestEndGameWithLoser(t *testing.T) {
 		return
 	}
 
-	if err := g.PickUpCards(); err != nil {
+	if err := g.PickUpCards(p2); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 	}
 
@@ -199,7 +199,7 @@ func TestEndGameWithDraw(t *testing.T) {
 		return
 	}
 
-	if err = g.MoveToBita(); err != nil {
+	if err = g.MoveToBita(p1); err != nil {
 		t.Errorf("Error occurred while moving cards to bita: %s\n", err.Error())
 		return
 	}
@@ -231,7 +231,7 @@ func TestPickUpCards(t *testing.T) {
 
 	// test with empty board
 	b := g.board
-	if err := g.PickUpCards(); err == nil {
+	if err := g.PickUpCards(g.defendingPlayer); err == nil {
 		t.Errorf("Expected error for an empty board\n")
 		return
 	}
@@ -243,7 +243,7 @@ func TestPickUpCards(t *testing.T) {
 	b.AddAttackingCard(c1)
 	g.board = b
 
-	if err := g.PickUpCards(); err != nil {
+	if err := g.PickUpCards(g.defendingPlayer); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 		return
 	}
@@ -270,7 +270,7 @@ func TestPickUpCards(t *testing.T) {
 	}
 	g.board = b
 
-	if err := g.PickUpCards(); err != nil {
+	if err := g.PickUpCards(g.defendingPlayer); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 		return
 	}
@@ -300,7 +300,7 @@ func TestPickUpCards(t *testing.T) {
 	b.AddAttackingCard(c3)
 	g.board = b
 
-	if err := g.PickUpCards(); err != nil {
+	if err := g.PickUpCards(g.defendingPlayer); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 		return
 	}
@@ -333,7 +333,7 @@ func TestMoveToBita(t *testing.T) {
 
 	// test with empty board
 	b := g.board
-	if err := g.MoveToBita(); err == nil {
+	if err := g.MoveToBita(g.defendingPlayer); err == nil {
 		t.Errorf("Expected error for an empty board\n")
 		return
 	}
@@ -344,7 +344,7 @@ func TestMoveToBita(t *testing.T) {
 	b.AddAttackingCard(c1)
 	g.board = b
 
-	if err := g.MoveToBita(); err == nil {
+	if err := g.MoveToBita(g.defendingPlayer); err == nil {
 		t.Errorf("Expected error\n")
 		return
 	}
@@ -359,7 +359,7 @@ func TestMoveToBita(t *testing.T) {
 	}
 	g.board = b
 
-	if err := g.MoveToBita(); err != nil {
+	if err := g.MoveToBita(g.defendingPlayer); err != nil {
 		t.Errorf("Error occurred: %s\n", err.Error())
 		return
 	}
@@ -375,7 +375,7 @@ func TestMoveToBita(t *testing.T) {
 	b.AddAttackingCard(c3)
 	g.board = b
 
-	if err := g.MoveToBita(); err == nil {
+	if err := g.MoveToBita(g.defendingPlayer); err == nil {
 		t.Errorf("Expected error\n")
 		return
 	}
