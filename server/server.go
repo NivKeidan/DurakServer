@@ -286,6 +286,15 @@ func attack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validations
+	if !isGameCreated {
+		http.Error(w, createErrorJson("game has not been created"), 400)
+		return
+	}
+
+	if !isGameStarted {
+		http.Error(w, createErrorJson("game has not been started"), 400)
+		return
+	}
 
 
 	// Update game

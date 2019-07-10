@@ -1,6 +1,7 @@
 package server
 
 import (
+	"DurakGo/game"
 	"DurakGo/server/httpPayloadTypes"
 	"bytes"
 	"encoding/json"
@@ -181,33 +182,61 @@ func TestLeaveGame(t *testing.T) {
 	}
 }
 
-//func TestAttack(t *testing.T) {
-//	if err := checkMethodsNotAllowed("/createGame", "POST", createGame); err != nil {
-//		t.Error(err)
-//	}
-//
-//	testCases := []struct {
-//		cardCode 	 string
-//		name         string
-//		expectedCode int
-//	}{
-//		{}.  // Attacking with no game created
-//		{},  // Create game
-//		{},  // Attacking with no game started
-//		{},  // Start game
-//		{},  // Attacking with invalid card code
-//		{},  // Attacking with invalid player name
-//		{},  // Attacking with non existing player name
-//		{},  // Attacking with nil vars
-//		{},  // Attack regularly
-//	}
-//
-//	for _, testCase := range testCases {
-//		if err := helperAttack(testCase.name, false, testCase.cardCode, testCase.expectedCode); err != nil {
-//			t.Fatalf("Error: %s\nTest case: %b\n", err.Error(), testCase)
-//		}
-//	}
-//}
+func TestAttack(t *testing.T) {
+	if err := checkMethodsNotAllowed("/createGame", "POST", createGame); err != nil {
+		t.Error(err)
+	}
+
+	// Attacking with no game created
+	if err := helperAttack("niv", false, "6D", 400); err != nil {
+		t.Fatalf("Error: %s\nTest case: Attacking with no game created\n", err.Error())
+	}
+
+	// Create game
+	if err := helperCreateGame(2, "niv", false, 200); err != nil {
+		t.Fatalf("Could not create game. Error: %s\n", err.Error())
+	}
+
+	defer unCreateGame()
+
+	// Attacking with no game started
+	if err := helperAttack("niv", false, "6D", 400); err != nil {
+		t.Fatalf("Error: %s\nTest case: Attacking with no game started\n", err.Error())
+	}
+
+	// Start game
+	if err := helperJoinGame("niv2", 200); err != nil {
+		t.Fatalf("Could not join (and start) game. Error: %s\n", err.Error())
+	}
+
+	// Attacking with invalid card codes
+	invalidCardCodes := []string{"", "!", "?", "%", "//\\", "1D", "QQ", "17S", "AR", "00006S"}
+	for _, invalidCardCode := range invalidCardCodes {
+		if err := helperAttack("niv", false, invalidCardCode, 400); err != nil {
+			t.Fatalf("Error: %s\nTest case: Attacking with invalid card code: %s\n", err.Error(), invalidCardCode)
+		}
+	}
+
+	// Attacking with invalid player name
+	invalidPlayerNames := []string{"niv3", "", "/\\", "%??~", "\n"}
+	for _, invalidPlayerName := range invalidPlayerNames {
+		if err := helperAttack(invalidPlayerName, false, "6D", 400); err != nil {
+			t.Fatalf("Error: %s\nTest case: Attacking with invalid player name: %s\n", err.Error(), invalidPlayerName)
+		}
+	}
+
+	// Attack regularly
+	startingPlayer := currentGame.GetStartingPlayer()
+	name := startingPlayer.Name
+	if cardCode, err := game.CardToCode(startingPlayer.PeekCards()[0]); err != nil {
+		t.Fatalf("Error occurred while trying to get card code from starting player. Error: %s\n", err.Error())
+	} else {
+		if err := helperAttack(currentGame.GetStartingPlayer().Name, false, cardCode, 200);
+			err != nil {
+			t.Fatalf("Error: %s\nTest case: Attacking normally: %s\n", err.Error(), name)
+		}
+	}
+}
 
 func TestDefend(t *testing.T) {
 	// Defending with invalid attacking card code
@@ -411,13 +440,10 @@ func helperAttack(name string, shouldUncreateGame bool, cardCode string, expecte
 
 	jsonResp := rr.Body.Bytes()
 	if expectedCode == 200 { // Check for proper response
-		resp := httpPayloadTypes.PlayerJoinedResponse{}
+		resp := httpPayloadTypes.SuccessResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
 			return err
-		}
-		if resp.PlayerName != name {
-			return fmt.Errorf("Expected returned name to be %s, instead got %s\n", name, resp.PlayerName)
 		}
 	} else {
 		resp := httpPayloadTypes.ErrorResponse{}
