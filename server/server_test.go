@@ -174,53 +174,40 @@ func TestLeaveGame(t *testing.T) {
 			}
 		}
 
-		body := httpPayloadTypes.LeaveGameRequestObject{
-			PlayerName: testCase.leavingPlayerName,
-		}
-		jsonBody, err := json.Marshal(body)
-		if err != nil {
-			t.Errorf("Could not JSONify request object. Error: %s\nTest Case: %v\n", err.Error(), testCase)
-		}
-		req, err := http.NewRequest("POST", "/leaveGame", bytes.NewBuffer(jsonBody))
-		if err != nil {
-			t.Fatalf("Error occurred: %s\nTest case: %v\n", err.Error(), testCase)
-		}
-
-		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(leaveGame)
-		handler.ServeHTTP(rr, req)
-
-		if status := rr.Code; status != testCase.expectedCode {
-			t.Errorf("Leave game handler returned wrong status code: got %v want %v\nResponse: %s\nTest case: %v\n",
-				status, testCase.expectedCode, rr.Body.String(), testCase)
-		}
-
-		jsonResp := rr.Body.Bytes()
-		if testCase.expectedCode == 200 { // Check for proper response
-			resp := httpPayloadTypes.SuccessResponse{}
-			if err := json.Unmarshal(jsonResp, &resp); err != nil {
-				t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
-			}
-		} else {
-			resp := httpPayloadTypes.ErrorResponse{}
-			if err := json.Unmarshal(jsonResp, &resp); err != nil {
-				t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
-			}
+		err := helperLeaveGame(testCase.leavingPlayerName, testCase.expectedCode); if err != nil {
+			t.Errorf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
 		}
 		unCreateGame()
 	}
 }
 
-func TestAttack(t *testing.T) {
-
-	// Attacking with invalid card code
-	// Attacking with invalid player name
-	// Attacking with non existing player name
-	// Attacking with no game created
-	// Attacking with no game started
-	// Attacking with nil vars
-
-}
+//func TestAttack(t *testing.T) {
+//	if err := checkMethodsNotAllowed("/createGame", "POST", createGame); err != nil {
+//		t.Error(err)
+//	}
+//
+//	testCases := []struct {
+//		cardCode 	 string
+//		name         string
+//		expectedCode int
+//	}{
+//		{}.  // Attacking with no game created
+//		{},  // Create game
+//		{},  // Attacking with no game started
+//		{},  // Start game
+//		{},  // Attacking with invalid card code
+//		{},  // Attacking with invalid player name
+//		{},  // Attacking with non existing player name
+//		{},  // Attacking with nil vars
+//		{},  // Attack regularly
+//	}
+//
+//	for _, testCase := range testCases {
+//		if err := helperAttack(testCase.name, false, testCase.cardCode, testCase.expectedCode); err != nil {
+//			t.Fatalf("Error: %s\nTest case: %b\n", err.Error(), testCase)
+//		}
+//	}
+//}
 
 func TestDefend(t *testing.T) {
 	// Defending with invalid attacking card code
@@ -396,4 +383,89 @@ func helperCreateGameAndJoin(playerNum int, playerNames []string, shouldUncreate
 
 	return nil
 
+}
+
+func helperAttack(name string, shouldUncreateGame bool, cardCode string, expectedCode int) error {
+	body := httpPayloadTypes.AttackRequestObject{
+		AttackingPlayerName: name,
+		AttackingCardCode:   cardCode,
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
+	}
+	req, err := http.NewRequest("POST", "/attack", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("Error occurred: %s\n", err.Error())
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(attack)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != expectedCode {
+		return fmt.Errorf("Create game handler returned wrong status code: got %v want %v\nResponse: %s\n",
+			status, expectedCode, rr.Body.String())
+	}
+
+	jsonResp := rr.Body.Bytes()
+	if expectedCode == 200 { // Check for proper response
+		resp := httpPayloadTypes.PlayerJoinedResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			unCreateGame()
+			return err
+		}
+		if resp.PlayerName != name {
+			return fmt.Errorf("Expected returned name to be %s, instead got %s\n", name, resp.PlayerName)
+		}
+	} else {
+		resp := httpPayloadTypes.ErrorResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			return err
+		}
+	}
+
+	if shouldUncreateGame {
+		unCreateGame()
+	}
+
+	return nil
+}
+
+func helperLeaveGame(name string, expectedCode int, ) error {
+	body := httpPayloadTypes.LeaveGameRequestObject{
+		PlayerName: name,
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", "/leaveGame", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return err
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(leaveGame)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != expectedCode {
+		return fmt.Errorf("Leave game handler returned wrong status code: got %v want %v\nResponse: %s\n",
+			status, expectedCode, rr.Body.String())
+	}
+
+	jsonResp := rr.Body.Bytes()
+	if expectedCode == 200 { // Check for proper response
+		resp := httpPayloadTypes.SuccessResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			return err
+		}
+	} else {
+		resp := httpPayloadTypes.ErrorResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			return err
+		}
+	}
+	return nil
 }
