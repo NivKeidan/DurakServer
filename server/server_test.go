@@ -10,33 +10,32 @@ import (
 	"net/http/httptest"
 	"testing"
 )
+var (
+	invalidCardCodes = []string {"", "%", "!", "?", "QQ", "Qd", "aS", "1S", "000010H", "25H", "\\.", "Ac", "AR", "00006S"}
+	invalidPlayerNames = []string{"", "?", "!", "%", "~", "/", "\\", "/\\", "%??~", "\n"}
+	invalidPlayerNums = []int{0, 1, 5, -3}
+)
 
 func TestCreateGame(t *testing.T) {
 	if err := checkMethodsNotAllowed("/createGame", "POST", createGame); err != nil {
 		t.Error(err)
 	}
 
-	testCases := []struct {
-		numOfPlayers int
-		name         string
-		expectedCode int
-	}{
-		{numOfPlayers: 0, name: "niv", expectedCode: 400},
-		{numOfPlayers: 5, name: "niv", expectedCode: 400},
-		{numOfPlayers: 1, name: "niv", expectedCode: 400},
-		{numOfPlayers: 3, name: "", expectedCode: 400},
-		{numOfPlayers: 3, name: "?", expectedCode: 400},
-		{numOfPlayers: 3, name: "|", expectedCode: 400},
-		{numOfPlayers: 3, name: "%", expectedCode: 400},
-		{numOfPlayers: 3, name: "~", expectedCode: 400},
-		{numOfPlayers: 3, name: "/", expectedCode: 400},
-		{numOfPlayers: 3, name: "\\", expectedCode: 400},
+	validPlayerName := "niv"
+	expectedCode := 400
+
+	for _, invalidPlayerNum := range invalidPlayerNums {
+		err := helperCreateGame(invalidPlayerNum, validPlayerName, true, expectedCode)
+		if err != nil {
+			t.Fatalf("Error: %s\nInvalid player num: %d\n", err.Error(), invalidPlayerNum)
+		}
 	}
 
-	for _, testCase := range testCases {
-		err := helperCreateGame(testCase.numOfPlayers, testCase.name, true, testCase.expectedCode)
+	validPlayerNum := 3
+	for _, invalidPlayerName := range invalidPlayerNames {
+		err := helperCreateGame(validPlayerNum, invalidPlayerName, true, expectedCode)
 		if err != nil {
-			t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
+			t.Fatalf("Error: %s\nInvalid name used: %s\n", err.Error(), invalidPlayerName)
 		}
 	}
 
@@ -66,38 +65,30 @@ func TestJoinGame(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testCases := []struct {
-		name         string
-		expectedCode int
-		create		 bool
-	}{
-		{name: "niv", expectedCode: 400, create: false},  // Test joining when game not created
-		{name: "", expectedCode: 400, create: true},  // Test joining with no name
-		{expectedCode: 400, create: true},  // Test joining with name nil
-		{name: "?", expectedCode: 400, create: true},  // Illegal name
-		{name: "|", expectedCode: 400, create: true},  // Illegal name
-		{name: "%", expectedCode: 400, create: true},  // Illegal name
-		{name: "~", expectedCode: 400, create: true},  // Illegal name
-		{name: "/", expectedCode: 400, create: true},  // Illegal name
-		{name: "\\", expectedCode: 400, create: true},  // Illegal name
+	validName := "niv"
+	expectedCode := 400
+
+	if err := helperJoinGame(validName, expectedCode); err != nil {
+		t.Fatalf("Error ocurred while trying to join when game not crated\n" +
+			"Error: %s\n", err.Error())
 	}
 
-	for _, testCase := range testCases {
+	// Create game
+	if err := helperCreateGame(2, "genericCreatorName", false, 200);
+		err != nil {
+		t.Fatalf("Error ocurred when trrying to create game\n" +
+			"Error:: %s\n", err.Error())
+	}
 
-		if testCase.create {
-			if err := helperCreateGame(2, "genericCreatorName", false, 200);
-			err != nil {
-				t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
-			}
-		}
-
-		if err := helperJoinGame(testCase.name, testCase.expectedCode); err != nil {
+	for _, invalidPlayerName := range invalidPlayerNames {
+		if err := helperJoinGame(invalidPlayerName, expectedCode); err != nil {
 			unCreateGame()
-			t.Fatalf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
+			t.Fatalf("Error ocurred when trying to join with invalid name\n" +
+				"Name used: %s\nError: %s\n", invalidPlayerName, err.Error())
 		}
-
-		unCreateGame()
 	}
+
+	unCreateGame()
 
 	// Create game with 2 players
 	name := "testniv"
@@ -105,12 +96,12 @@ func TestJoinGame(t *testing.T) {
 	if err := helperCreateGame(2, name, false, 200); err != nil {
 		t.Fatalf("Could not create game with 2 players. Error: %s\n", err.Error())
 	}
+	defer unCreateGame()
 
 	// Test join player with same name used for creation
 	if err := helperJoinGame(name, 400); err != nil {
 		t.Fatalf("Error while testing for joining with same name. Error: %s\n", err.Error())
 	}
-
 
 	// Join second player properly
 	if err := helperJoinGame("testniv3", 200); err != nil {
@@ -122,7 +113,6 @@ func TestJoinGame(t *testing.T) {
 		t.Fatalf("Error while testing for joining a running game. Error: %s\n", err.Error())
 	}
 
-	unCreateGame()
 }
 
 func TestLeaveGame(t *testing.T) {
@@ -131,59 +121,53 @@ func TestLeaveGame(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testCases := []struct {
-		leavingPlayerName string
-		create            bool
-		createNames       []string
-		running           bool
-		expectedCode	  int
-	}{
-		{leavingPlayerName: "niv3", create: true, running: true,  // Test leaving when game is running
-			createNames: []string{"niv", "niv2"}, expectedCode: 400},
-		{leavingPlayerName: "niv", create: false, expectedCode: 400},  // Test leaving when no game created
-		{create: true, expectedCode: 400},  // Test leaving with nil
-		{leavingPlayerName: "", create: true, expectedCode: 400},  // Test leaving with ""
-		{leavingPlayerName: "?", create: true, expectedCode: 400},  // Illegal name
-		{leavingPlayerName: "|", create: true, expectedCode: 400},  // Illegal name
-		{leavingPlayerName: "%", create: true, expectedCode: 400},  // Illegal name
-		{leavingPlayerName: "~", create: true, expectedCode: 400},  // Illegal name
-		{leavingPlayerName: "/", create: true, expectedCode: 400},  // Illegal name
-		{leavingPlayerName: "\\", create: true, expectedCode: 400},  // Illegal name
-		// Testing leaving with a valid name but that does not exist
-		{leavingPlayerName: "niv2", create: true, createNames: []string{"niv"}, expectedCode: 400},
+	// Test leaving when no game created
+	validPlayerName := "niv"
+	expectedCode := 400
+
+	err := helperLeaveGame(validPlayerName, expectedCode); if err != nil {
+		t.Errorf("Error ocurred when testing for leaving without game started\n" +
+			"Error:: %s", err.Error())
 	}
 
-	for _, testCase := range testCases {
-		if testCase.running {
-			if err := helperCreateGameAndJoin(len(testCase.createNames), testCase.createNames, false);
-			err != nil {
-				t.Errorf("Error: %s\nTest case: %v\n", err.Error(), testCase)
-			}
-		} else {
-			if testCase.create {
-				if testCase.createNames != nil {
-					if err := helperCreateGameAndJoin(len(testCase.createNames)+1, testCase.createNames, false);
-						err != nil {
-						t.Errorf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
-					}
-				} else {
-					if err := helperCreateGameAndJoin(2, []string{"genericName"}, false);
-						err != nil {
-						t.Errorf("Error: %s\nTest case: %v\n", err.Error(), testCase)
-					}
-				}
-			}
-		}
+	// Create game
+	if err = helperCreateGame(2, validPlayerName, false, 200); err != nil {
+		t.Fatalf("could not create game. Error: %s\n", err.Error())
+	}
 
-		err := helperLeaveGame(testCase.leavingPlayerName, testCase.expectedCode); if err != nil {
-			t.Errorf("Error: %s\nTest Case: %v\n", err.Error(), testCase)
+	defer unCreateGame()
+
+	// Testing leaving with a valid name but that does not exist
+	validPlayerName = "niv2"
+	if err = helperLeaveGame(validPlayerName, expectedCode); err != nil {
+		t.Fatalf("could not leave game with un existing player name\n" +
+			"Name used: %s\nError: %s\n", validPlayerName, err.Error())
+	}
+
+	// Invalid names
+	for _, invalidPlayerName := range invalidPlayerNames {
+		if err = helperLeaveGame(invalidPlayerName, expectedCode); err != nil {
+			t.Errorf("Error ocurred when testing for leaving game with invalid name\n" +
+				"Name used: %s\nError: %s\n", invalidPlayerName, err.Error())
 		}
-		unCreateGame()
+	}
+
+	// Start game
+	validPlayerName = "niv2"
+	if err := helperJoinGame(validPlayerName, 200); err != nil {
+		t.Fatalf("Error ocurred when trying to join (and start) game\n" +
+			"Error: %s\n", err.Error())
+	}
+
+	// Test leaving when game is running
+	if err = helperLeaveGame(validPlayerName, expectedCode); err != nil {
+		t.Errorf("Error ocurred when testing for leaving game while game running\n" +
+			"Name used: %s\nError: %s\n", validPlayerName, err.Error())
 	}
 }
 
 func TestAttack(t *testing.T) {
-	if err := checkMethodsNotAllowed("/createGame", "POST", createGame); err != nil {
+	if err := checkMethodsNotAllowed("/attack", "POST", attack); err != nil {
 		t.Error(err)
 	}
 
@@ -210,7 +194,6 @@ func TestAttack(t *testing.T) {
 	}
 
 	// Attacking with invalid card codes
-	invalidCardCodes := []string{"", "!", "?", "%", "//\\", "1D", "QQ", "17S", "AR", "00006S"}
 	for _, invalidCardCode := range invalidCardCodes {
 		if err := helperAttack("niv", false, invalidCardCode, 400); err != nil {
 			t.Fatalf("Error: %s\nTest case: Attacking with invalid card code: %s\n", err.Error(), invalidCardCode)
@@ -218,16 +201,21 @@ func TestAttack(t *testing.T) {
 	}
 
 	// Attacking with invalid player name
-	invalidPlayerNames := []string{"niv3", "", "/\\", "%??~", "\n"}
 	for _, invalidPlayerName := range invalidPlayerNames {
 		if err := helperAttack(invalidPlayerName, false, "6D", 400); err != nil {
 			t.Fatalf("Error: %s\nTest case: Attacking with invalid player name: %s\n", err.Error(), invalidPlayerName)
 		}
 	}
 
+	// Attacking with non existing player name
+	name := "niv3"
+	if err := helperAttack(name, false, "6D", 400); err != nil {
+		t.Fatalf("Error: %s\nTest case: Attacking with invalid player name: %s\n", err.Error(), name)
+	}
+
 	// Attack regularly
 	startingPlayer := currentGame.GetStartingPlayer()
-	name := startingPlayer.Name
+	name = startingPlayer.Name
 	if cardCode, err := game.CardToCode(startingPlayer.PeekCards()[0]); err != nil {
 		t.Fatalf("Error occurred while trying to get card code from starting player. Error: %s\n", err.Error())
 	} else {
@@ -239,13 +227,54 @@ func TestAttack(t *testing.T) {
 }
 
 func TestDefend(t *testing.T) {
+
+	if err := checkMethodsNotAllowed("/defend", "POST", defend); err != nil {
+		t.Error(err)
+	}
+
+	// Defending with no game created
+	if err := helperDefend("niv", "6D", "7D", 400); err != nil {
+		t.Fatalf("Error: %s\nTest case: Defending with no game created\n", err.Error())
+	}
+
+	// Create game
+	if err := helperCreateGame(2, "niv", false, 200); err != nil {
+		t.Fatalf("Could not create game. Error: %s\n", err.Error())
+	}
+
+	defer unCreateGame()
+
+	// Defending with no game started
+	if err := helperDefend("niv", "6D", "7D", 400); err != nil {
+		t.Fatalf("Error: %s\nTest case: Defending with no game started\n", err.Error())
+	}
+
+	// Start game
+	if err := helperJoinGame("niv2", 200); err != nil {
+		t.Fatalf("Could not join (and start) game. Error: %s\n", err.Error())
+	}
+
+	// Attack with card
+	startingPlayer := currentGame.GetStartingPlayer()
+	if attCardCode, err := game.CardToCode(startingPlayer.PeekCards()[0]); err != nil {
+		t.Fatalf("Could not get card code from player.Error: %s\n", err.Error())
+	} else {
+		if err := helperAttack(startingPlayer.Name, false, attCardCode, 200); err != nil {
+			t.Fatalf("Could not attack.Error: %s\n", err.Error())
+		}
+	}
+
 	// Defending with invalid attacking card code
+	for _, invalidCardCode := range invalidCardCodes {
+		if err := helperDefend("niv", invalidCardCode, "7D", 400); err != nil {
+			t.Fatalf("Error: %s\nTest case: Defending with no game started\n", err.Error())
+		}
+	}
+
+
+
 	// Defending with invalid defending card code
-	// Defending with invalid player name
-	// Defending with non existing player name
-	// Defending when no game created
-	// Defending when no game started
-	// Defending with nil var
+	// Defending with invalid player name (bad chars, attacking player, non existing, nil)
 }
 
 func TestTakeCards(t *testing.T) {
@@ -493,5 +522,48 @@ func helperLeaveGame(name string, expectedCode int, ) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func helperDefend(defendingPlayerName string, attCardCode string, defCardCode string, expectedCode int) error {
+
+	body := httpPayloadTypes.DefenseRequestObject{
+		DefendingPlayerName: 	defendingPlayerName,
+		DefendingCardCode:   	defCardCode,
+		AttackingCardCode:		attCardCode,
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("Could not JSONify request object. Error: %s\n", err.Error())
+	}
+	req, err := http.NewRequest("POST", "/defend", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("Error occurred: %s\n", err.Error())
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(defend)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != expectedCode {
+		return fmt.Errorf("Create game handler returned wrong status code: got %v want %v\nResponse: %s\n",
+			status, expectedCode, rr.Body.String())
+	}
+
+	jsonResp := rr.Body.Bytes()
+	if expectedCode == 200 { // Check for proper response
+		resp := httpPayloadTypes.SuccessResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			unCreateGame()
+			return err
+		}
+	} else {
+		resp := httpPayloadTypes.ErrorResponse{}
+		if err := json.Unmarshal(jsonResp, &resp); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
