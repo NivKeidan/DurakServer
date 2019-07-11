@@ -404,12 +404,23 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validations
+
+	if !isGameCreated {
+		http.Error(w, createErrorJson("game has not been created"), 400)
+		return
+	}
+
+	if !isGameStarted {
+		http.Error(w, createErrorJson("game has not started"), 400)
+		return
+	}
+
 	requestingPlayer, err := currentGame.GetPlayerByName(requestData.PlayerName)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
-	// Validations
 
 	// Update game
 	if err := currentGame.PickUpCards(requestingPlayer); err != nil {
@@ -442,14 +453,22 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
+	if !isGameCreated {
+		http.Error(w, createErrorJson("game has not been created"), 400)
+		return
+	}
+
+	if !isGameStarted {
+		http.Error(w, createErrorJson("game has not started"), 400)
+		return
+	}
+
 	requestingPlayer, err := currentGame.GetPlayerByName(requestData.PlayerName)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), 400)
 		return
 	}
-
-	// Validations
-
 
 	// Update game
 	if err := currentGame.MoveToBita(requestingPlayer); err != nil {
