@@ -422,27 +422,6 @@ func helperJoinGame(name string, expectedCode int) error {
 	return nil
 }
 
-func helperCreateGameAndJoin(playerNum int, playerNames []string, shouldUncreate bool) error {
-	// Create game
-	err := helperCreateGame(playerNum, playerNames[0], false, 200); if err != nil {
-		return err
-	}
-
-	for i := 1; i < len(playerNames); i++ {
-		if err := helperJoinGame(playerNames[i], 200); err != nil {
-			unCreateGame()
-			return err
-		}
-	}
-
-	if shouldUncreate {
-		unCreateGame()
-	}
-
-	return nil
-
-}
-
 func helperAttack(name string, shouldUncreateGame bool, cardCode string, expectedCode int) error {
 	body := httpPayloadTypes.AttackRequestObject{
 		AttackingPlayerName: name,
