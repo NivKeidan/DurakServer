@@ -22,7 +22,7 @@ func TestCreateGame(t *testing.T) {
 	}
 
 	validPlayerName := "niv"
-	expectedCode := 400
+	expectedCode := http.StatusBadRequest
 
 	for _, invalidPlayerNum := range invalidPlayerNums {
 		err := helperCreateGame(invalidPlayerNum, validPlayerName, true, expectedCode)
@@ -40,22 +40,22 @@ func TestCreateGame(t *testing.T) {
 	}
 
 	// Test creating more than one game
-	err := helperCreateGame(3, "player1", false, 200)
+	err := helperCreateGame(3, "player1", false, http.StatusOK)
 	if err != nil {
 		t.Fatalf("Error: %s\nTest creating several games. First game error\n", err.Error())
 	}
 
-	err = helperCreateGame(3, "player2", true, 400)
+	err = helperCreateGame(3, "player2", true, http.StatusBadRequest)
 	if err != nil {
 		t.Fatalf("Error: %s\nTest creating several games. Second game error\n", err.Error())
 	}
 
 	// Test valid creation with different amount of players
-	err = helperCreateGame(2, "niv", true, 200); if err != nil {
+	err = helperCreateGame(2, "niv", true, http.StatusOK); if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	err = helperCreateGame(4, "niv", true, 200); if err != nil {
+	err = helperCreateGame(4, "niv", true, http.StatusOK); if err != nil {
 		t.Fatalf(err.Error())
 	}
 }
@@ -66,7 +66,7 @@ func TestJoinGame(t *testing.T) {
 	}
 
 	validName := "niv"
-	expectedCode := 400
+	expectedCode := http.StatusBadRequest
 
 	if err := helperJoinGame(validName, expectedCode); err != nil {
 		t.Fatalf("Error ocurred while trying to join when game not crated\n" +
@@ -74,7 +74,7 @@ func TestJoinGame(t *testing.T) {
 	}
 
 	// Create game
-	if err := helperCreateGame(2, "genericCreatorName", false, 200);
+	if err := helperCreateGame(2, "genericCreatorName", false, http.StatusOK);
 		err != nil {
 		t.Fatalf("Error ocurred when trrying to create game\n" +
 			"Error:: %s\n", err.Error())
@@ -93,23 +93,23 @@ func TestJoinGame(t *testing.T) {
 	// Create game with 2 players
 	name := "testniv"
 
-	if err := helperCreateGame(2, name, false, 200); err != nil {
+	if err := helperCreateGame(2, name, false, http.StatusOK); err != nil {
 		t.Fatalf("Could not create game with 2 players. Error: %s\n", err.Error())
 	}
 	defer unCreateGame()
 
 	// Test join player with same name used for creation
-	if err := helperJoinGame(name, 400); err != nil {
+	if err := helperJoinGame(name, http.StatusBadRequest); err != nil {
 		t.Fatalf("Error while testing for joining with same name. Error: %s\n", err.Error())
 	}
 
 	// Join second player properly
-	if err := helperJoinGame("testniv3", 200); err != nil {
+	if err := helperJoinGame("testniv3", http.StatusOK); err != nil {
 		t.Fatalf("Could not join another player to game. Error: %s\n", err.Error())
 	}
 
 	// Test try joining a running game
-	if err := helperJoinGame("newName4", 400); err != nil {
+	if err := helperJoinGame("newName4", http.StatusBadRequest); err != nil {
 		t.Fatalf("Error while testing for joining a running game. Error: %s\n", err.Error())
 	}
 
@@ -123,7 +123,7 @@ func TestLeaveGame(t *testing.T) {
 
 	// Test leaving when no game created
 	validPlayerName := "niv"
-	expectedCode := 400
+	expectedCode := http.StatusBadRequest
 
 	err := helperLeaveGame(validPlayerName, expectedCode); if err != nil {
 		t.Errorf("Error ocurred when testing for leaving without game started\n" +
@@ -131,7 +131,7 @@ func TestLeaveGame(t *testing.T) {
 	}
 
 	// Create game
-	if err = helperCreateGame(2, validPlayerName, false, 200); err != nil {
+	if err = helperCreateGame(2, validPlayerName, false, http.StatusOK); err != nil {
 		t.Fatalf("could not create game. Error: %s\n", err.Error())
 	}
 
@@ -154,7 +154,7 @@ func TestLeaveGame(t *testing.T) {
 
 	// Start game
 	validPlayerName = "niv2"
-	if err := helperJoinGame(validPlayerName, 200); err != nil {
+	if err := helperJoinGame(validPlayerName, http.StatusOK); err != nil {
 		t.Fatalf("Error ocurred when trying to join (and start) game\n" +
 			"Error: %s\n", err.Error())
 	}
@@ -172,44 +172,44 @@ func TestAttack(t *testing.T) {
 	}
 
 	// Attacking with no game created
-	if err := helperAttack("niv", false, "6D", 400); err != nil {
+	if err := helperAttack("niv", false, "6D", http.StatusBadRequest); err != nil {
 		t.Fatalf("Error: %s\nTest case: Attacking with no game created\n", err.Error())
 	}
 
 	// Create game
-	if err := helperCreateGame(2, "niv", false, 200); err != nil {
+	if err := helperCreateGame(2, "niv", false, http.StatusOK); err != nil {
 		t.Fatalf("Could not create game. Error: %s\n", err.Error())
 	}
 
 	defer unCreateGame()
 
 	// Attacking with no game started
-	if err := helperAttack("niv", false, "6D", 400); err != nil {
+	if err := helperAttack("niv", false, "6D", http.StatusBadRequest); err != nil {
 		t.Fatalf("Error: %s\nTest case: Attacking with no game started\n", err.Error())
 	}
 
 	// Start game
-	if err := helperJoinGame("niv2", 200); err != nil {
+	if err := helperJoinGame("niv2", http.StatusOK); err != nil {
 		t.Fatalf("Could not join (and start) game. Error: %s\n", err.Error())
 	}
 
 	// Attacking with invalid card codes
 	for _, invalidCardCode := range invalidCardCodes {
-		if err := helperAttack("niv", false, invalidCardCode, 400); err != nil {
+		if err := helperAttack("niv", false, invalidCardCode, http.StatusBadRequest); err != nil {
 			t.Fatalf("Error: %s\nTest case: Attacking with invalid card code: %s\n", err.Error(), invalidCardCode)
 		}
 	}
 
 	// Attacking with invalid player name
 	for _, invalidPlayerName := range invalidPlayerNames {
-		if err := helperAttack(invalidPlayerName, false, "6D", 400); err != nil {
+		if err := helperAttack(invalidPlayerName, false, "6D", http.StatusBadRequest); err != nil {
 			t.Fatalf("Error: %s\nTest case: Attacking with invalid player name: %s\n", err.Error(), invalidPlayerName)
 		}
 	}
 
 	// Attacking with non existing player name
 	name := "niv3"
-	if err := helperAttack(name, false, "6D", 400); err != nil {
+	if err := helperAttack(name, false, "6D", http.StatusBadRequest); err != nil {
 		t.Fatalf("Error: %s\nTest case: Attacking with invalid player name: %s\n", err.Error(), name)
 	}
 
@@ -219,7 +219,7 @@ func TestAttack(t *testing.T) {
 	if cardCode, err := game.CardToCode(startingPlayer.PeekCards()[0]); err != nil {
 		t.Fatalf("Error occurred while trying to get card code from starting player. Error: %s\n", err.Error())
 	} else {
-		if err := helperAttack(currentGame.GetStartingPlayer().Name, false, cardCode, 200);
+		if err := helperAttack(currentGame.GetStartingPlayer().Name, false, cardCode, http.StatusOK);
 			err != nil {
 			t.Fatalf("Error: %s\nTest case: Attacking normally: %s\n", err.Error(), name)
 		}
@@ -233,24 +233,24 @@ func TestDefend(t *testing.T) {
 	}
 
 	// Defending with no game created
-	if err := helperDefend("niv", "6D", "7D", 400); err != nil {
+	if err := helperDefend("niv", "6D", "7D", http.StatusBadRequest); err != nil {
 		t.Fatalf("Error: %s\nTest case: Defending with no game created\n", err.Error())
 	}
 
 	// Create game
-	if err := helperCreateGame(2, "niv", false, 200); err != nil {
+	if err := helperCreateGame(2, "niv", false, http.StatusOK); err != nil {
 		t.Fatalf("Could not create game. Error: %s\n", err.Error())
 	}
 
 	defer unCreateGame()
 
 	// Defending with no game started
-	if err := helperDefend("niv", "6D", "7D", 400); err != nil {
+	if err := helperDefend("niv", "6D", "7D", http.StatusBadRequest); err != nil {
 		t.Fatalf("Error: %s\nTest case: Defending with no game started\n", err.Error())
 	}
 
 	// Start game
-	if err := helperJoinGame("niv2", 200); err != nil {
+	if err := helperJoinGame("niv2", http.StatusOK); err != nil {
 		t.Fatalf("Could not join (and start) game. Error: %s\n", err.Error())
 	}
 
@@ -261,7 +261,7 @@ func TestDefend(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not get card code from player.Error: %s\n", err.Error())
 	} else {
-		if err := helperAttack(startingPlayer.Name, false, attCardCode, 200); err != nil {
+		if err := helperAttack(startingPlayer.Name, false, attCardCode, http.StatusOK); err != nil {
 			t.Fatalf("Could not attack.Error: %s\n", err.Error())
 		}
 	}
@@ -269,11 +269,11 @@ func TestDefend(t *testing.T) {
 	for _, invalidCardCode := range invalidCardCodes {
 		// Defending with invalid attacking card code
 
-		if err := helperDefend("niv", invalidCardCode, "7D", 400); err != nil {
+		if err := helperDefend("niv", invalidCardCode, "7D", http.StatusBadRequest); err != nil {
 			t.Fatalf("Error: %s\nTest case: Defending with no game started\n", err.Error())
 		}
 		// Defending with invalid defending card code
-		if err := helperDefend("niv", attCardCode, invalidCardCode, 400); err != nil {
+		if err := helperDefend("niv", attCardCode, invalidCardCode, http.StatusBadRequest); err != nil {
 			t.Fatalf("Error: %s\nTest case: Defending with no game started\n", err.Error())
 		}
 	}
@@ -287,14 +287,14 @@ func TestDefend(t *testing.T) {
 		t.Fatalf("Error ocurred when trying to get defending card code. Error: %s\n", err.Error())
 	} else {
 		for _, invalidPlayerName := range invalidPlayerNames {
-			if err := helperDefend(invalidPlayerName, attCardCode, defCardCode, 400); err != nil {
+			if err := helperDefend(invalidPlayerName, attCardCode, defCardCode, http.StatusBadRequest); err != nil {
 				t.Fatalf("Error: %s\nTest case: Defending with no game started\n", err.Error())
 			}
 		}
 	}
 
 	// Defending with non existing player name
-	if err := helperDefend("niv14", attCardCode, defCardCode, 400); err != nil {
+	if err := helperDefend("niv14", attCardCode, defCardCode, http.StatusBadRequest); err != nil {
 		t.Fatalf("Error: %s\nTest case: Defending with no game started\n", err.Error())
 	}
 }
@@ -307,7 +307,7 @@ func TestTakeCards(t *testing.T) {
 
 	// Test taking cards when no game created
 	validPlayerName := "niv"
-	expectedCode := 400
+	expectedCode := http.StatusBadRequest
 
 	err := helperTakeCards(validPlayerName, expectedCode); if err != nil {
 		t.Errorf("Error ocurred when testing for taking cards without game started\n" +
@@ -315,7 +315,7 @@ func TestTakeCards(t *testing.T) {
 	}
 
 	// Create game
-	if err = helperCreateGame(2, validPlayerName, false, 200); err != nil {
+	if err = helperCreateGame(2, validPlayerName, false, http.StatusOK); err != nil {
 		t.Fatalf("could not create game. Error: %s\n", err.Error())
 	}
 
@@ -323,7 +323,7 @@ func TestTakeCards(t *testing.T) {
 
 	// Start game
 	validPlayerName = "niv2"
-	if err := helperJoinGame(validPlayerName, 200); err != nil {
+	if err := helperJoinGame(validPlayerName, http.StatusOK); err != nil {
 		t.Fatalf("Error ocurred when trying to join (and start) game\n" +
 			"Error: %s\n", err.Error())
 	}
@@ -353,7 +353,7 @@ func TestMoveCardsToBita(t *testing.T) {
 
 	// Test moving cards to bita when no game created
 	validPlayerName := "niv"
-	expectedCode := 400
+	expectedCode := http.StatusBadRequest
 
 	err := helperMoveCardsToBita(validPlayerName, expectedCode); if err != nil {
 		t.Errorf("Error ocurred when testing for moving cards to bita without game started\n" +
@@ -361,7 +361,7 @@ func TestMoveCardsToBita(t *testing.T) {
 	}
 
 	// Create game
-	if err = helperCreateGame(2, validPlayerName, false, 200); err != nil {
+	if err = helperCreateGame(2, validPlayerName, false, http.StatusOK); err != nil {
 		t.Fatalf("could not create game. Error: %s\n", err.Error())
 	}
 
@@ -369,7 +369,7 @@ func TestMoveCardsToBita(t *testing.T) {
 
 	// Start game
 	validPlayerName = "niv2"
-	if err := helperJoinGame(validPlayerName, 200); err != nil {
+	if err := helperJoinGame(validPlayerName, http.StatusOK); err != nil {
 		t.Fatalf("Error ocurred when trying to join (and start) game\n" +
 			"Error: %s\n", err.Error())
 	}
@@ -397,7 +397,7 @@ func TestRestartGame(t *testing.T) {
 	}
 
 	validPlayerName := "niv"
-	expectedCode := 400
+	expectedCode := http.StatusBadRequest
 
 	// Test trying to restart when no game is created
 	err := helperRestartGame(expectedCode); if err != nil {
@@ -406,7 +406,7 @@ func TestRestartGame(t *testing.T) {
 	}
 
 	// Create game
-	if err = helperCreateGame(2, validPlayerName, false, 200); err != nil {
+	if err = helperCreateGame(2, validPlayerName, false, http.StatusOK); err != nil {
 		t.Fatalf("could not create game. Error: %s\n", err.Error())
 	}
 
@@ -420,7 +420,7 @@ func TestRestartGame(t *testing.T) {
 
 	// Start game
 	validPlayerName = "niv2"
-	if err := helperJoinGame(validPlayerName, 200); err != nil {
+	if err := helperJoinGame(validPlayerName, http.StatusOK); err != nil {
 		t.Fatalf("Error ocurred when trying to join (and start) game\n" +
 			"Error: %s\n", err.Error())
 	}
@@ -480,7 +480,7 @@ func helperCreateGame(playerNum int, name string, shouldUncreate bool, expectedC
 	}
 
 	jsonResp := rr.Body.Bytes()
-	if expectedCode == 200 { // Check for proper response
+	if expectedCode == http.StatusOK { // Check for proper response
 		resp := httpPayloadTypes.PlayerJoinedResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
@@ -529,7 +529,7 @@ func helperJoinGame(name string, expectedCode int) error {
 	}
 
 	jsonResp := rr.Body.Bytes()
-	if expectedCode == 200 { // Check for proper response
+	if expectedCode == http.StatusOK { // Check for proper response
 		resp := httpPayloadTypes.PlayerJoinedResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
@@ -575,7 +575,7 @@ func helperAttack(name string, shouldUncreateGame bool, cardCode string, expecte
 	}
 
 	jsonResp := rr.Body.Bytes()
-	if expectedCode == 200 { // Check for proper response
+	if expectedCode == http.StatusOK { // Check for proper response
 		resp := httpPayloadTypes.SuccessResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
@@ -618,7 +618,7 @@ func helperLeaveGame(name string, expectedCode int, ) error {
 	}
 
 	jsonResp := rr.Body.Bytes()
-	if expectedCode == 200 { // Check for proper response
+	if expectedCode == http.StatusOK { // Check for proper response
 		resp := httpPayloadTypes.SuccessResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			return err
@@ -659,7 +659,7 @@ func helperDefend(defendingPlayerName string, attCardCode string, defCardCode st
 	}
 
 	jsonResp := rr.Body.Bytes()
-	if expectedCode == 200 { // Check for proper response
+	if expectedCode == http.StatusOK { // Check for proper response
 		resp := httpPayloadTypes.SuccessResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
@@ -699,7 +699,7 @@ func helperTakeCards(playerName string, expectedCode int) error {
 	}
 
 	jsonResp := rr.Body.Bytes()
-	if expectedCode == 200 { // Check for proper response
+	if expectedCode == http.StatusOK { // Check for proper response
 		resp := httpPayloadTypes.SuccessResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
@@ -739,7 +739,7 @@ func helperMoveCardsToBita(playerName string, expectedCode int) error {
 	}
 
 	jsonResp := rr.Body.Bytes()
-	if expectedCode == 200 { // Check for proper response
+	if expectedCode == http.StatusOK { // Check for proper response
 		resp := httpPayloadTypes.SuccessResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()
@@ -771,7 +771,7 @@ func helperRestartGame(expectedCode int) error {
 	}
 
 	jsonResp := rr.Body.Bytes()
-	if expectedCode == 200 { // Check for proper response
+	if expectedCode == http.StatusOK { // Check for proper response
 		resp := httpPayloadTypes.SuccessResponse{}
 		if err := json.Unmarshal(jsonResp, &resp); err != nil {
 			unCreateGame()

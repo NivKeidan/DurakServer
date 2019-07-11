@@ -66,21 +66,21 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"GET"}
 	if err := validateRequest(&w, r, allowedMethods); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	// Extract ID and player name from URL
 	keys, ok := r.URL.Query()["id"]
 	if !ok {
-		http.Error(w, createErrorJson("could not get unique identifier"), 400)
+		http.Error(w, createErrorJson("could not get unique identifier"), http.StatusBadRequest)
 		return
 	}
 	key := keys[0]
 
 	names, ok := r.URL.Query()["name"]
 	if !ok {
-		http.Error(w, createErrorJson("could not get unique identifier"), 400)
+		http.Error(w, createErrorJson("could not get unique identifier"), http.StatusBadRequest)
 		return
 	}
 	playerName := names[0]
@@ -88,13 +88,13 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 	// Validate player name exists in players
 
 	if !stringutil.IsStringInSlice(playerNames, playerName) {
-		http.Error(w, createErrorJson("player name does not exist"), 400)
+		http.Error(w, createErrorJson("player name does not exist"), http.StatusBadRequest)
 		return
 	}
 
 	// Check that ID exists
 	if err := validateClientIdentification(playerName, key); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -118,7 +118,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 	requestData := httpPayloadTypes.CreateGameRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -128,12 +128,12 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	playerName := requestData.PlayerName
 
 	if err := validateCreateGame(requestData); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	if isGameCreated {
-		http.Error(w, createErrorJson("game has already been created"), 400)
+		http.Error(w, createErrorJson("game has already been created"), http.StatusBadRequest)
 		return
 	}
 	handleCreateGame()
@@ -142,7 +142,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 	// Join game
 
 	if err := validateJoinGame(playerName); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		unCreateGame()
 		return
 	}
@@ -180,7 +180,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 
 	requestData := httpPayloadTypes.JoinGameRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -189,7 +189,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	// Validations
 
 	if err := validateJoinGame(playerName); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -224,7 +224,7 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 
 	requestData := httpPayloadTypes.LeaveGameRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -233,17 +233,17 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 	// Validations
 
 	if !isGameCreated {
-		http.Error(w, createErrorJson("Create a game first"), 400)
+		http.Error(w, createErrorJson("Create a game first"), http.StatusBadRequest)
 		return
 	}
 
 	if !stringutil.IsStringInSlice(playerNames, playerName) {
-		http.Error(w, createErrorJson("Could not find player"), 400)
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
 	}
 
 	if isGameStarted {
-		http.Error(w, createErrorJson("game already started"), 400)
+		http.Error(w, createErrorJson("game already started"), http.StatusBadRequest)
 		return
 	}
 
@@ -281,18 +281,18 @@ func attack(w http.ResponseWriter, r *http.Request) {
 
 	requestData := httpPayloadTypes.AttackRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	// Validations
 	if !isGameCreated {
-		http.Error(w, createErrorJson("game has not been created"), 400)
+		http.Error(w, createErrorJson("game has not been created"), http.StatusBadRequest)
 		return
 	}
 
 	if !isGameStarted {
-		http.Error(w, createErrorJson("game has not been started"), 400)
+		http.Error(w, createErrorJson("game has not been started"), http.StatusBadRequest)
 		return
 	}
 
@@ -301,19 +301,19 @@ func attack(w http.ResponseWriter, r *http.Request) {
 	attackingCard, err := game.NewCardByCode(requestData.AttackingCardCode)
 
 	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	attackingPlayer, err := currentGame.GetPlayerByName(requestData.AttackingPlayerName)
 
 	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	if err = currentGame.Attack(attackingPlayer, attackingCard); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -338,18 +338,18 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 	requestData := httpPayloadTypes.DefenseRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	// Validations
 	if !isGameCreated {
-		http.Error(w, createErrorJson("game has not been created"), 400)
+		http.Error(w, createErrorJson("game has not been created"), http.StatusBadRequest)
 		return
 	}
 
 	if !isGameStarted {
-		http.Error(w, createErrorJson("game has not been started"), 400)
+		http.Error(w, createErrorJson("game has not been started"), http.StatusBadRequest)
 		return
 	}
 
@@ -357,26 +357,26 @@ func defend(w http.ResponseWriter, r *http.Request) {
 	attackingCard, err := game.NewCardByCode(requestData.AttackingCardCode)
 
 	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	defendingCard, err := game.NewCardByCode(requestData.DefendingCardCode)
 
 	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	defendingPlayer, err := currentGame.GetPlayerByName(requestData.DefendingPlayerName)
 
 	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	if err = currentGame.Defend(defendingPlayer, attackingCard, defendingCard); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -400,31 +400,31 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 	requestData := httpPayloadTypes.TakeCardsRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	// Validations
 
 	if !isGameCreated {
-		http.Error(w, createErrorJson("game has not been created"), 400)
+		http.Error(w, createErrorJson("game has not been created"), http.StatusBadRequest)
 		return
 	}
 
 	if !isGameStarted {
-		http.Error(w, createErrorJson("game has not started"), 400)
+		http.Error(w, createErrorJson("game has not started"), http.StatusBadRequest)
 		return
 	}
 
 	requestingPlayer, err := currentGame.GetPlayerByName(requestData.PlayerName)
 	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	// Update game
 	if err := currentGame.PickUpCards(requestingPlayer); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -449,30 +449,30 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 	requestData := httpPayloadTypes.MoveCardsToBitaObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 
 	if !isGameCreated {
-		http.Error(w, createErrorJson("game has not been created"), 400)
+		http.Error(w, createErrorJson("game has not been created"), http.StatusBadRequest)
 		return
 	}
 
 	if !isGameStarted {
-		http.Error(w, createErrorJson("game has not started"), 400)
+		http.Error(w, createErrorJson("game has not started"), http.StatusBadRequest)
 		return
 	}
 
 	requestingPlayer, err := currentGame.GetPlayerByName(requestData.PlayerName)
 	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	// Update game
 	if err := currentGame.MoveToBita(requestingPlayer); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 400)
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -499,12 +499,12 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 
 	// TODO Validate that this is coming from one of the players
 	if !isGameStarted {
-		http.Error(w, createErrorJson("no game running at the moment"), 400)
+		http.Error(w, createErrorJson("no game running at the moment"), http.StatusBadRequest)
 		return
 	}
 
 	if !currentGame.IsGameOver() {
-		http.Error(w, createErrorJson("game is not over"), 400)
+		http.Error(w, createErrorJson("game is not over"), http.StatusBadRequest)
 		return
 	}
 
@@ -541,7 +541,7 @@ func validateRequest(w *http.ResponseWriter, r *http.Request, allowedMethods []s
 		return errors.New("send response back now")
 
 	} else if !isMethodAllowed(r, allowedMethods) {
-		http.Error(*w, createErrorJson("Method not allowed"), 405)
+		http.Error(*w, createErrorJson("Method not allowed"), http.StatusMethodNotAllowed)
 		return errors.New("send response back now")
 	}
 	return nil
