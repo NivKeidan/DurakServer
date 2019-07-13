@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// TODO Move to config/options
+// TODO Move to options
 const (
 	CardsPerPlayer    = 6
 	MaxCardsPerAttack = 6

@@ -3,6 +3,7 @@ package server
 import (
 	"CheekyCommons/stringutil"
 	"DurakGo/game"
+	"DurakGo/config"
 	"DurakGo/server/httpPayloadTypes"
 	"DurakGo/server/stream"
 	"encoding/json"
@@ -23,11 +24,13 @@ var numOfPlayers int
 var appStreamer = stream.NewAppStreamer()
 var gameStreamer = stream.NewGameStreamer()
 var clientIdentification map[string]map[string]bool
+var configuration *config.Configuration
 
 
 // External API
 
-func InitServer() {
+func InitServer(conf *config.Configuration) {
+	configuration = conf
 	rand.Seed(time.Now().UTC().UnixNano())
 	http.HandleFunc("/appStream", registerToAppStream)
 	http.HandleFunc("/gameStream", registerToGameStream)
@@ -713,10 +716,8 @@ func createErrorJson(errorMessage string) string {
 }
 
 func addCorsHeaders(w http.ResponseWriter) {
-	// TODO Integrate this from config file
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Origin", configuration.Get("CorsOrigin"))
+	w.Header().Set("Access-Control-Allow-Headers", configuration.Get("CorsHeaders"))
 }
 
 func createPlayerIdentificationString() string {

@@ -2,8 +2,11 @@ package main
 
 import (
 	"DurakGo/server"
+	"DurakGo/config"
 )
 
 func main() {
-	server.InitServer()
+	// TODO Replace this to get env from file
+	conf := config.GetConfiguration("DEV")
+	server.InitServer(conf)
 }
