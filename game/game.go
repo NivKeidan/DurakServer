@@ -66,7 +66,7 @@ func (this *Game) Attack(player *Player, card *Card) error {
 		return errors.New("attacking cards limit reached")
 	}
 
-	if this.board.NumOfAttackingCards() >= this.defendingPlayer.GetNumOfCardsInHand() {
+	if len(this.board.peekUndefendedCards()) >= this.defendingPlayer.GetNumOfCardsInHand() {
 		return errors.New("player does not have enough cards to defend")
 	}
 
