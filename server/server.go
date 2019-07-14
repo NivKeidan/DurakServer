@@ -77,17 +77,22 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 	// Extract ID and player name from URL
 	keys, ok := r.URL.Query()["id"]
 	if !ok {
-		http.Error(w, createErrorJson("could not get unique identifier"), http.StatusBadRequest)
+		http.Error(w, createErrorJson("could not get unique identifier from URL"), http.StatusBadRequest)
 		return
 	}
 	key := keys[0]
 
-	names, ok := r.URL.Query()["name"]
-	if !ok {
-		http.Error(w, createErrorJson("could not get unique identifier"), http.StatusBadRequest)
+	// Validate client identification
+	if err := validateClientIdentification(key); err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
-	playerName := names[0]
+
+	playerName, ok := clientIdentification[key]
+	if !ok {
+		http.Error(w, createErrorJson("could not get player name by unique identifier"), http.StatusBadRequest)
+		return
+	}
 
 	// Validate player name exists in players
 
@@ -96,15 +101,9 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check that ID exists
-	if err := validateClientIdentification(playerName, key); err != nil {
-		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
-		return
-	}
-
 	// Open stream and create connection to player
 
-	// Register client to appStreamer
+	// Register client to gameStreamer
 	outgoingChannel := gameStreamer.RegisterClient(&w, r)
 	if isGameStarted {
 		gameStreamer.Publish(getStartGameResponse())
@@ -548,10 +547,10 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 func getConnectionId(r *http.Request) (string, error) {
 	connId := r.Header.Get("ConnectionId")
 	if connId == "" {
-		return "", errors.New("connection id missing")
+		return "", errors.New("connection id header missing")
 	}
 	if _, ok := clientIdentification[connId]; !ok {
-		return "", fmt.Errorf("Invalid connection Id %s\n", connId)
+		return "", fmt.Errorf("Invalid connection Id: %s\n", connId)
 	}
 	return connId, nil
 }
@@ -605,16 +604,11 @@ func validateCreateGame(requestData httpPayloadTypes.CreateGameRequestObject) er
 	return nil
 }
 
-func validateClientIdentification(playerName string, code string) error {
+func validateClientIdentification(code string) error {
 
-	name, ok := clientIdentification[code]
+	_, ok := clientIdentification[code]
 	if !ok {
 		return errors.New("no such identification id")
-		// TODO Add disconnecting client? (usually means trying to hack or something wrong occurred)
-	}
-
-	if playerName != name {
-		return errors.New("no such player name")
 		// TODO Add disconnecting client? (usually means trying to hack or something wrong occurred)
 	}
 
