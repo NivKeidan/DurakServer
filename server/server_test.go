@@ -14,7 +14,7 @@ var (
 	invalidCardCodes = []string {"", "%", "!", "?", "QQ", "Qd", "aS", "1S", "000010H", "25H", "\\.", "Ac", "AR", "00006S"}
 	invalidPlayerNames = []string{"", "?", "!", "%", "~", "/", "\\", "/\\", "%??~", "\n"}
 	invalidPlayerNums = []int{0, 1, 5, -3}
-	invalidClientCode = "abcdefghi"
+	invalidClientCode = helperCreateInvalidClientCode()
 )
 
 func TestCreateGame(t *testing.T) {
@@ -403,6 +403,15 @@ func TestRestartGame(t *testing.T) {
 }
 
 // Internal non-testing methods
+
+func helperCreateInvalidClientCode() string {
+	length := configuration.GetInt("ClientIdLength") - 1
+	b := make([]byte, length)
+	for i := 0; i < length; i++ {
+		b[i] = 'a'
+	}
+	return string(b)
+}
 
 func checkMethodsNotAllowed(endpoint string, methodAllowed string, fn func(w http.ResponseWriter, r *http.Request)) error {
 	methods := []string{"GET", "PUT", "POST", "DELETE"}

@@ -271,17 +271,6 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getConnectionId(r *http.Request) (string, error) {
-	connId := r.Header.Get("ConnectionId")
-	if connId == "" {
-		return "", errors.New("connection id missing")
-	}
-	if _, ok := clientIdentification[connId]; !ok {
-		return "", fmt.Errorf("Invalid connection Id %s\n", connId)
-	}
-	return connId, nil
-}
-
 func attack(w http.ResponseWriter, r *http.Request) {
 
 	// Validate request headers
@@ -556,6 +545,17 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 
 // Validations
 
+func getConnectionId(r *http.Request) (string, error) {
+	connId := r.Header.Get("ConnectionId")
+	if connId == "" {
+		return "", errors.New("connection id missing")
+	}
+	if _, ok := clientIdentification[connId]; !ok {
+		return "", fmt.Errorf("Invalid connection Id %s\n", connId)
+	}
+	return connId, nil
+}
+
 func isNameValid(name string) bool {
 	var IsLetter = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`).MatchString
 	return IsLetter(name)
@@ -739,18 +739,37 @@ func createErrorJson(errorMessage string) string {
 }
 
 func addCorsHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", configuration.Get("CorsOrigin"))
-	w.Header().Set("Access-Control-Allow-Headers", configuration.Get("CorsHeaders"))
+	w.Header().Set("Access-Control-Allow-Origin", configuration.GetString("CorsOrigin"))
+	w.Header().Set("Access-Control-Allow-Headers", configuration.GetString("CorsHeaders"))
 }
 
 func createPlayerIdentificationString() string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	const length = 10
+	letters := configuration.GetString("ClientIdLetters")
+	length := configuration.GetInt("ClientIdLength")
 	b := make([]byte, length)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+	var s string
+	for doesCodeExist(s) {
+		for i := range b {
+			b[i] = letters[rand.Intn(len(letters))]
+		}
+		s = string(b)
 	}
-	return string(b)
+	return s
+}
+
+func doesCodeExist(c string) bool {
+	// This func is called in a loop, so first call should return true
+	if c == "" {
+		return true
+	}
+
+	for code := range clientIdentification {
+		if c == code {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Game Logic

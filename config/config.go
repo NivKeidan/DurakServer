@@ -41,7 +41,7 @@ func GetConfiguration(envStr string) *Configuration {
 	return instance
 }
 
-func (this *Configuration) Get(key string) string {
+func (this *Configuration) GetString(key string) string {
 	// If no configuration was loaded, use default of DEV
 	// TODO Change default environment to prod?
 	
@@ -50,5 +50,17 @@ func (this *Configuration) Get(key string) string {
 	if instance == nil {
 		GetConfiguration(defaultEnv)
 	}
-	return instance.settings.get(key)
+	return instance.settings.getString(key)
+}
+
+func (this *Configuration) GetInt(key string) int {
+	// If no configuration was loaded, use default of DEV
+	// TODO Change default environment to prod?
+
+	defaultEnv := "DEV"
+
+	if instance == nil {
+		GetConfiguration(defaultEnv)
+	}
+	return instance.settings.getInt(key)
 }

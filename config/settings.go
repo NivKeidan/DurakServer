@@ -5,42 +5,56 @@ package config
 type settings struct {
 	CorsOrigin			string
 	CorsHeaders			string
+	clientIdLetters		string
+	clientIdLength		int
 }
 
 func getSettings(env environment) *settings {
+
+	// Relevant to all environments
+	s := &settings{
+		CorsHeaders: "Content-Type, ConnectionId",
+		clientIdLetters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+		clientIdLength: 10,
+	}
+
+	// Unique varlues er environment
 	switch env {
 	case PROD:
-		return &settings{
-			CorsOrigin: "*",
-			CorsHeaders: "Content-Type, ConnectionId",
-		}
+		s.CorsOrigin = "*"
+		return s
 	case DEV:
-		return &settings{
-			CorsOrigin: "*",
-			CorsHeaders: "Content-Type, ConnectionId",
-		}
+		s.CorsOrigin = "*"
+		return s
 	case TEST:
-		return &settings{
-			CorsOrigin: "*",
-			CorsHeaders: "Content-Type, ConnectionId",
-		}
+		s.CorsOrigin = "*"
+		return s
 	case STAGING:
-		return &settings{
-			CorsOrigin: "*",
-			CorsHeaders: "Content-Type, ConnectionId",
-		}
+		s.CorsOrigin = "*"
+		return s
 	default:
 		return nil
 	}
 }
 
-func (this *settings) get(key string) string {
+func (this *settings) getString(key string) string {
 	switch key {
 	case "CorsHeaders":
 		return this.CorsHeaders
 	case "CorsOrigin":
 		return this.CorsOrigin
+	case "ClientIdLetters":
+		return this.clientIdLetters
 	default:
 		return ""
+	}
+}
+
+func (this *settings) getInt(key string) int {
+	switch key {
+	case "ClientIdLength":
+		return this.clientIdLength
+	default:
+		return 0
 	}
 }
