@@ -8,6 +8,7 @@ import (
 	"DurakGo/server/stream"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/getlantern/deepcopy"
 	"log"
 	"math/rand"
@@ -23,7 +24,7 @@ var isGameStarted = false
 var numOfPlayers int
 var appStreamer = stream.NewAppStreamer()
 var gameStreamer = stream.NewGameStreamer()
-var clientIdentification map[string]map[string]bool
+var clientIdentification map[string]string
 var configuration *config.Configuration
 
 
@@ -52,7 +53,7 @@ func registerToAppStream(w http.ResponseWriter, r *http.Request) {
 
 	// Validate request headers
 	allowedMethods := []string{"GET"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
 
@@ -68,7 +69,7 @@ func registerToAppStream(w http.ResponseWriter, r *http.Request) {
 func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"GET"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
@@ -114,7 +115,7 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 func createGame(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"POST"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
 
@@ -175,7 +176,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 
 	// Validate request headers
 	allowedMethods := []string{"POST"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
 
@@ -217,21 +218,20 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func leaveGame(w http.ResponseWriter, r *http.Request) {
-	// Validate request headers
+	// Validate request method
 	allowedMethods := []string{"POST"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
 
-	// Parse request
-
-	requestData := httpPayloadTypes.LeaveGameRequestObject{}
-	if err := extractJSONData(&requestData, r); err != nil {
+	// Validate connection id
+	connectionId, err := getConnectionId(r)
+	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
-	playerName := requestData.PlayerName
+	playerName := clientIdentification[connectionId]
 
 	// Validations
 
@@ -271,16 +271,32 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func getConnectionId(r *http.Request) (string, error) {
+	connId := r.Header.Get("ConnectionId")
+	if connId == "" {
+		return "", errors.New("connection id missing")
+	}
+	if _, ok := clientIdentification[connId]; !ok {
+		return "", fmt.Errorf("Invalid connection Id %s\n", connId)
+	}
+	return connId, nil
+}
+
 func attack(w http.ResponseWriter, r *http.Request) {
 
 	// Validate request headers
 	allowedMethods := []string{"POST"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
 
-	// Parse request
-
+	// Validate connection id
+	connectionId, err := getConnectionId(r)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		return
+	}
+	playerName := clientIdentification[connectionId]
 
 	requestData := httpPayloadTypes.AttackRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
@@ -308,7 +324,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	attackingPlayer, err := currentGame.GetPlayerByName(requestData.AttackingPlayerName)
+	attackingPlayer, err := currentGame.GetPlayerByName(playerName)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
@@ -334,9 +350,17 @@ func defend(w http.ResponseWriter, r *http.Request) {
 
 	// Validate request headers
 	allowedMethods := []string{"POST"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
+
+	// Validate connection id
+	connectionId, err := getConnectionId(r)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		return
+	}
+	playerName := clientIdentification[connectionId]
 
 	// Parse request
 	requestData := httpPayloadTypes.DefenseRequestObject{}
@@ -371,7 +395,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defendingPlayer, err := currentGame.GetPlayerByName(requestData.DefendingPlayerName)
+	defendingPlayer, err := currentGame.GetPlayerByName(playerName)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
@@ -396,16 +420,17 @@ func defend(w http.ResponseWriter, r *http.Request) {
 func takeCards(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"POST"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
 
-	// Parse request
-	requestData := httpPayloadTypes.TakeCardsRequestObject{}
-	if err := extractJSONData(&requestData, r); err != nil {
+	// Validate connection id
+	connectionId, err := getConnectionId(r)
+	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
+	playerName := clientIdentification[connectionId]
 
 	// Validations
 
@@ -419,7 +444,7 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestingPlayer, err := currentGame.GetPlayerByName(requestData.PlayerName)
+	requestingPlayer, err := currentGame.GetPlayerByName(playerName)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
@@ -444,18 +469,17 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"POST"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
 
-	// Parse request
-	// Parse request
-	requestData := httpPayloadTypes.MoveCardsToBitaObject{}
-	if err := extractJSONData(&requestData, r); err != nil {
+	// Validate connection id
+	connectionId, err := getConnectionId(r)
+	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
-
+	playerName := clientIdentification[connectionId]
 
 	if !isGameCreated {
 		http.Error(w, createErrorJson("game has not been created"), http.StatusBadRequest)
@@ -467,7 +491,7 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestingPlayer, err := currentGame.GetPlayerByName(requestData.PlayerName)
+	requestingPlayer, err := currentGame.GetPlayerByName(playerName)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
@@ -492,15 +516,19 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 func restartGame(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"POST"}
-	if err := validateRequest(&w, r, allowedMethods); err != nil {
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
 		return
 	}
 
-	// Parse request
+	// Validate connection id
+	_, err := getConnectionId(r)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		return
+	}
 
 	// Validations
 
-	// TODO Validate that this is coming from one of the players
 	if !isGameStarted {
 		http.Error(w, createErrorJson("no game running at the moment"), http.StatusBadRequest)
 		return
@@ -534,7 +562,7 @@ func isNameValid(name string) bool {
 
 }
 
-func validateRequest(w *http.ResponseWriter, r *http.Request, allowedMethods []string) error {
+func validateRequestMethod(w *http.ResponseWriter, r *http.Request, allowedMethods []string) error {
 	// Handles CORS, HTTP Method
 
 	// TODO Upgrade CORS handling
@@ -579,22 +607,17 @@ func validateCreateGame(requestData httpPayloadTypes.CreateGameRequestObject) er
 
 func validateClientIdentification(playerName string, code string) error {
 
-	v, ok := clientIdentification[playerName]
+	name, ok := clientIdentification[code]
 	if !ok {
-		return errors.New("no such player name registered")
-	}
-
-	v2, ok := v[code]
-	if !ok {
-		return errors.New("identification string is incorrect")
-		// TODO Add disconnecting client? (usually means trying to hack or something wrong occurred)
-	}
-	if v2 {
-		return errors.New("client already registered to stream")
+		return errors.New("no such identification id")
 		// TODO Add disconnecting client? (usually means trying to hack or something wrong occurred)
 	}
 
-	clientIdentification[playerName][code] = true
+	if playerName != name {
+		return errors.New("no such player name")
+		// TODO Add disconnecting client? (usually means trying to hack or something wrong occurred)
+	}
+
 	return nil
 }
 
@@ -734,7 +757,7 @@ func createPlayerIdentificationString() string {
 
 func unCreateGame() {
 	playerNames = make([]string, 0)
-	clientIdentification = make(map[string]map[string]bool)
+	clientIdentification = make(map[string]string)
 	isGameCreated = false
 	if isGameStarted {
 		currentGame = nil
@@ -761,8 +784,7 @@ func handlePlayerJoin(playerName string, playerUniqueCode string) error {
 		playerNames = append(playerNames, playerName)
 	}
 
-	clientIdentification[playerName] = make(map[string]bool)
-	clientIdentification[playerName][playerUniqueCode] = false
+	clientIdentification[playerUniqueCode] = playerName
 
 	// Start game if required
 	if len(playerNames) == numOfPlayers {
@@ -775,7 +797,7 @@ func handlePlayerJoin(playerName string, playerUniqueCode string) error {
 
 func handleCreateGame() {
 	playerNames = make([]string, 0)
-	clientIdentification = make(map[string]map[string]bool)
+	clientIdentification = make(map[string]string)
 	isGameCreated = true
 }
 

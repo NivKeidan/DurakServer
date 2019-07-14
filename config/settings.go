@@ -12,22 +12,22 @@ func getSettings(env environment) *settings {
 	case PROD:
 		return &settings{
 			CorsOrigin: "*",
-			CorsHeaders: "Content-Type",
+			CorsHeaders: "Content-Type, ConnectionId",
 		}
 	case DEV:
 		return &settings{
 			CorsOrigin: "*",
-			CorsHeaders: "Content-Type",
+			CorsHeaders: "Content-Type, ConnectionId",
 		}
 	case TEST:
 		return &settings{
 			CorsOrigin: "*",
-			CorsHeaders: "Content-Type",
+			CorsHeaders: "Content-Type, ConnectionId",
 		}
 	case STAGING:
 		return &settings{
 			CorsOrigin: "*",
-			CorsHeaders: "Content-Type",
+			CorsHeaders: "Content-Type, ConnectionId",
 		}
 	default:
 		return nil
