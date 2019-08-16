@@ -43,6 +43,7 @@ func InitServer(conf *config.Configuration) {
 	http.HandleFunc("/takeCards", takeCards)
 	http.HandleFunc("/moveCardsToBita", moveCardsToBita)
 	http.HandleFunc("/restartGame", restartGame)
+	http.HandleFunc("/alive", alive)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -542,6 +543,30 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func alive(w http.ResponseWriter, r *http.Request) {
+	// Validate request headers
+	allowedMethods := []string{"GET"}
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
+		return
+	}
+
+	// Validate connection id
+	connId, err := getConnectionId(r)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	updateConnectionIsAlive(connId)
+
+	// Handle response
+	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+		return
+	}
+
+}
+
 // Validations
 
 func getConnectionId(r *http.Request) (string, error) {
@@ -764,6 +789,10 @@ func doesCodeExist(c string) bool {
 	}
 
 	return false
+}
+
+func updateConnectionIsAlive(connId string) string {
+	return connId
 }
 
 // Game Logic
