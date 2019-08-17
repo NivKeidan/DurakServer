@@ -25,12 +25,12 @@ func (this *Board) EmptyBoard() {
 	this.cardsOnBoard = make([]*CardOnBoard, 0)
 }
 
-func (this *Board) AddAttackingCard(card *Card) {
-	newCardOnBoard := CardOnBoard{attackingCard: card}
+func (this *Board) AddAttackingCard(card *Card, owner *Player) {
+	newCardOnBoard := CardOnBoard{attackingCard: card, attackingCardOwner: owner}
 	this.cardsOnBoard = append(this.cardsOnBoard, &newCardOnBoard)
 }
 
-func (this *Board) AddDefendingCard(attackingCard *Card, defendingCard *Card) error {
+func (this *Board) AddDefendingCard(attackingCard *Card, defendingCard *Card, owner *Player) error {
 	// Validations are done at game level
 	// This only validates attacking card is on table and un defended
 
@@ -41,6 +41,7 @@ func (this *Board) AddDefendingCard(attackingCard *Card, defendingCard *Card) er
 				return fmt.Errorf("%v is already defended with %v\n", cardOnBoard.attackingCard, cardOnBoard.defendingCard)
 			} else {
 				cardOnBoard.defendingCard = defendingCard
+				cardOnBoard.defendingCardOwner = owner
 				return nil
 			}
 		}
@@ -113,4 +114,13 @@ func (this *Board) peekUndefendedCards() []*Card {
 
 func (this *Board) String() string {
 	return fmt.Sprintf("%v", this.cardsOnBoard)
+}
+
+func (this *Board) ReturnCardsOnBoardToOwners() {
+	for _, cardOnBoard := range this.cardsOnBoard {
+		cardOnBoard.attackingCardOwner.TakeCards(cardOnBoard.attackingCard)
+		if cardOnBoard.defendingCard != nil {
+			cardOnBoard.defendingCardOwner.TakeCards(cardOnBoard.defendingCard)
+		}
+	}
 }
