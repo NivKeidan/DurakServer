@@ -42,8 +42,6 @@ func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter) chan httpPayload
 	this.newClients <- messageChan
 
 	return messageChan
-
-
 }
 
 func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData,
@@ -69,9 +67,8 @@ func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan htt
 					http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
 					return
 				}
-
-				// Flush the data immediately instead of buffering it for later.
 				flusher.Flush()
+
 			case <-ctx.Done():
 				return
 		}
