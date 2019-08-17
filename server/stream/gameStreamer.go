@@ -4,6 +4,7 @@ import (
 	"DurakGo/server/httpPayloadTypes"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type GameStreamer struct {
@@ -11,10 +12,17 @@ type GameStreamer struct {
 	playerName string
 }
 
-func NewGameStreamer() (gameStreamer *GameStreamer) {
+func NewGameStreamer(isAliveResp httpPayloadTypes.JSONResponseData) (gameStreamer *GameStreamer) {
 	gameStreamer = &GameStreamer{
 		streamer: *NewSSEStreamer(),
 	}
+
+	go func() {
+		for {
+			gameStreamer.Publish(isAliveResp)
+			time.Sleep(5 * time.Second)
+		}
+	}()
 
 	return gameStreamer
 }
