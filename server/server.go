@@ -25,7 +25,6 @@ var appStreamer = stream.NewAppStreamer(getIsAliveResponse())
 var gameStreamer = stream.NewGameStreamer(getIsAliveResponse())
 var configuration *config.Configuration
 
-``
 func InitServer(conf *config.Configuration) {
 	configuration = conf
 	rand.Seed(time.Now().UTC().UnixNano())
