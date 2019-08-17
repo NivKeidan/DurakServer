@@ -8,7 +8,6 @@ import (
 	"DurakGo/server/stream"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/getlantern/deepcopy"
 	"log"
 	"math/rand"
@@ -17,14 +16,13 @@ import (
 	"time"
 )
 
-var playerNames []string
+var users []*User
 var currentGame *game.Game
 var isGameCreated = false
 var isGameStarted = false
 var numOfPlayers int
-var appStreamer = stream.NewAppStreamer()
-var gameStreamer = stream.NewGameStreamer()
-var clientIdentification map[string]string  // ConnectionString: Name
+var appStreamer = stream.NewAppStreamer(getIsAliveResponse())
+var gameStreamer = stream.NewGameStreamer(getIsAliveResponse())
 var configuration *config.Configuration
 
 
@@ -81,24 +79,11 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson("could not get unique identifier from URL"), http.StatusBadRequest)
 		return
 	}
-	key := keys[0]
+	connectionId := keys[0]
 
-	// Validate client identification
-	if err := validateClientIdentification(key); err != nil {
-		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
-		return
-	}
-
-	playerName, ok := clientIdentification[key]
-	if !ok {
-		http.Error(w, createErrorJson("could not get player name by unique identifier"), http.StatusBadRequest)
-		return
-	}
-
-	// Validate player name exists in players
-
-	if !stringutil.IsStringInSlice(playerNames, playerName) {
-		http.Error(w, createErrorJson("player name does not exist"), http.StatusBadRequest)
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
 	}
 
@@ -109,7 +94,7 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 	if isGameStarted {
 		gameStreamer.Publish(getStartGameResponse())
 	}
-	gameStreamer.StreamLoop(&w, outgoingChannel, r, customizeDataPerPlayer(playerName))
+	gameStreamer.StreamLoop(&w, outgoingChannel, r, customizeDataPerPlayer(user.name))
 }
 
 func createGame(w http.ResponseWriter, r *http.Request) {
@@ -126,10 +111,10 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create game
-
 	numOfPlayers = requestData.NumOfPlayers
 	playerName := requestData.PlayerName
+
+	// Create game
 
 	if err := validateCreateGame(requestData); err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
@@ -140,20 +125,30 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson("game has already been created"), http.StatusBadRequest)
 		return
 	}
+
 	handleCreateGame()
+
 	appStreamer.Publish(getGameStatusResponse())
 
-	// Join game
+	// Create User
 
-	if err := validateJoinGame(playerName); err != nil {
+	if err := validatePlayerName(playerName); err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		unCreateGame()
 		return
 	}
 
-	uniquePlayerCode := createPlayerIdentificationString()
+	newUser := NewUser(playerName)
 
-	if err := handlePlayerJoin(playerName, uniquePlayerCode); err != nil {
+	// Join game
+
+	if err := validateJoinGame(); err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		unCreateGame()
+		return
+	}
+
+	if err := handlePlayerJoin(newUser); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		unCreateGame()
 		return
@@ -165,7 +160,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName, uniquePlayerCode), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(newUser), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		unCreateGame()
 		return
@@ -190,16 +185,21 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 
 	playerName := requestData.PlayerName
 
-	// Validations
-
-	if err := validateJoinGame(playerName); err != nil {
+	if err := validatePlayerName(playerName); err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
 
-	uniquePlayerCode := createPlayerIdentificationString()
+	// Validations
 
-	if err := handlePlayerJoin(playerName, uniquePlayerCode); err != nil {
+	if err := validateJoinGame(); err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	newUser := NewUser(playerName)
+
+	if err := handlePlayerJoin(newUser); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
@@ -210,7 +210,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle response
-	if err := integrateJSONResponse(getPlayerJoinedResponse(playerName, uniquePlayerCode), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(newUser), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
@@ -231,8 +231,6 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	playerName := clientIdentification[connectionId]
-
 	// Validations
 
 	if !isGameCreated {
@@ -240,7 +238,8 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !stringutil.IsStringInSlice(playerNames, playerName) {
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
 		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
 	}
@@ -251,12 +250,11 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove player
-	if len(playerNames) < numOfPlayers {
-		playerNames = stringutil.RemoveStringFromSlice(playerNames, playerName)
-	}
+	users = removeUser(user)
+
 
 	// Un-create game if required
-	if len(playerNames) == 0 {
+	if len(users) == 0 {
 		isGameCreated = false
 	}
 
@@ -285,7 +283,6 @@ func attack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
-	playerName := clientIdentification[connectionId]
 
 	requestData := httpPayloadTypes.AttackRequestObject{}
 	if err := extractJSONData(&requestData, r); err != nil {
@@ -313,7 +310,13 @@ func attack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	attackingPlayer, err := currentGame.GetPlayerByName(playerName)
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
+		return
+	}
+
+	attackingPlayer, err := currentGame.GetPlayerByName(user.name)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
@@ -349,7 +352,6 @@ func defend(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
-	playerName := clientIdentification[connectionId]
 
 	// Parse request
 	requestData := httpPayloadTypes.DefenseRequestObject{}
@@ -384,7 +386,13 @@ func defend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defendingPlayer, err := currentGame.GetPlayerByName(playerName)
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
+		return
+	}
+
+	defendingPlayer, err := currentGame.GetPlayerByName(user.name)
 
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
@@ -419,7 +427,6 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
-	playerName := clientIdentification[connectionId]
 
 	// Validations
 
@@ -433,7 +440,13 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestingPlayer, err := currentGame.GetPlayerByName(playerName)
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
+		return
+	}
+
+	requestingPlayer, err := currentGame.GetPlayerByName(user.name)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
@@ -468,7 +481,6 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
-	playerName := clientIdentification[connectionId]
 
 	if !isGameCreated {
 		http.Error(w, createErrorJson("game has not been created"), http.StatusBadRequest)
@@ -480,7 +492,13 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestingPlayer, err := currentGame.GetPlayerByName(playerName)
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
+		return
+	}
+
+	requestingPlayer, err := currentGame.GetPlayerByName(user.name)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
@@ -573,9 +591,6 @@ func getConnectionId(r *http.Request) (string, error) {
 	if connId == "" {
 		return "", errors.New("connection id header missing")
 	}
-	if _, ok := clientIdentification[connId]; !ok {
-		return "", fmt.Errorf("Invalid connection Id: %s\n", connId)
-	}
 	return connId, nil
 }
 
@@ -601,7 +616,7 @@ func validateRequestMethod(w *http.ResponseWriter, r *http.Request, allowedMetho
 	return nil
 }
 
-func validateJoinGame(playerName string) error {
+func validateJoinGame() error {
 
 	if !isGameCreated {
 		return errors.New("create a game first")
@@ -611,13 +626,6 @@ func validateJoinGame(playerName string) error {
 		return errors.New("game has already started")
 	}
 
-	if !isNameValid(playerName) {
-		return errors.New("player name contains illegal characters")
-	}
-
-	if stringutil.IsStringInSlice(playerNames, playerName) {
-		return errors.New("name already exists")
-	}
 	return nil
 }
 
@@ -628,12 +636,16 @@ func validateCreateGame(requestData httpPayloadTypes.CreateGameRequestObject) er
 	return nil
 }
 
-func validateClientIdentification(code string) error {
+func validatePlayerName(name string) error {
 
-	_, ok := clientIdentification[code]
-	if !ok {
-		return errors.New("no such identification id")
-		// TODO Add disconnecting client? (usually means trying to hack or something wrong occurred)
+	if !isNameValid(name) {
+		return errors.New("player name contains illegal characters")
+	}
+
+	for _, u := range users {
+		if u.name == name {
+			return errors.New("name already exists")
+		}
 	}
 
 	return nil
@@ -703,12 +715,17 @@ func getGameRestartResponse() httpPayloadTypes.JSONResponseData {
 	return resp
 }
 
-func getPlayerJoinedResponse(playerName string, code string) httpPayloadTypes.JSONResponseData {
+func getPlayerJoinedResponse(user *User) httpPayloadTypes.JSONResponseData {
 	resp := &httpPayloadTypes.PlayerJoinedResponse{
-		PlayerName: playerName,
-		IdCode: code,
+		PlayerName: user.name,
+		IdCode: user.connectionId,
 	}
 
+	return resp
+}
+
+func getIsAliveResponse() httpPayloadTypes.JSONResponseData {
+	resp := &httpPayloadTypes.IsAliveResponse{}
 	return resp
 }
 
@@ -761,28 +778,14 @@ func addCorsHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Headers", configuration.GetString("CorsHeaders"))
 }
 
-func createPlayerIdentificationString() string {
-	letters := configuration.GetString("ClientIdLetters")
-	length := configuration.GetInt("ClientIdLength")
-	b := make([]byte, length)
-	var s string
-	for doesCodeExist(s) {
-		for i := range b {
-			b[i] = letters[rand.Intn(len(letters))]
-		}
-		s = string(b)
-	}
-	return s
-}
-
 func doesCodeExist(c string) bool {
 	// This func is called in a loop, so first call should return true
 	if c == "" {
 		return true
 	}
 
-	for code := range clientIdentification {
-		if c == code {
+	for _, u := range users {
+		if c == u.connectionId {
 			return true
 		}
 	}
@@ -797,8 +800,7 @@ func updateConnectionIsAlive(connId string) string {
 // Game Logic
 
 func unCreateGame() {
-	playerNames = make([]string, 0)
-	clientIdentification = make(map[string]string)
+	users = make([]*User, 0)
 	isGameCreated = false
 	if isGameStarted {
 		currentGame = nil
@@ -808,6 +810,12 @@ func unCreateGame() {
 }
 
 func startGame() error {
+
+	playerNames := make([]string, 0)
+
+	for _, u := range users {
+		playerNames = append(playerNames, u.name)
+	}
 
 	newGame, err := game.NewGame(playerNames...)
 
@@ -819,16 +827,13 @@ func startGame() error {
 	return nil
 }
 
-func handlePlayerJoin(playerName string, playerUniqueCode string) error {
-	// Add player
-	if len(playerNames) < numOfPlayers {
-		playerNames = append(playerNames, playerName)
+func handlePlayerJoin(user *User) error {
+	if len(users) < numOfPlayers {
+		users = append(users, user)
 	}
 
-	clientIdentification[playerUniqueCode] = playerName
-
 	// Start game if required
-	if len(playerNames) == numOfPlayers {
+	if len(users) == numOfPlayers {
 		if err := startGame(); err != nil {
 			return err
 		}
@@ -837,9 +842,26 @@ func handlePlayerJoin(playerName string, playerUniqueCode string) error {
 }
 
 func handleCreateGame() {
-	playerNames = make([]string, 0)
-	clientIdentification = make(map[string]string)
+	users = make([]*User, 0)
 	isGameCreated = true
+}
+
+func getUserByConnectionId(connId string) *User {
+	for _, u := range users {
+		if u.connectionId == connId {
+			return u
+		}
+	}
+	return nil
+}
+
+func removeUser(u *User) []*User {
+	for i, user := range users {
+		if user == u {
+			return append(users[:i], users[i+1:]...)
+		}
+	}
+	return users
 }
 
 func getCustomizedPlayerCards(respData httpPayloadTypes.CustomizableJSONResponseData,

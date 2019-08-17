@@ -1,6 +1,9 @@
 package server
 
-import "DurakGo/server/httpPayloadTypes"
+import (
+	"DurakGo/server/httpPayloadTypes"
+	"math/rand"
+)
 
 type User struct {
 	connectionId string
@@ -10,7 +13,20 @@ type User struct {
 	isJoined bool
 }
 
-func NewUser(connectionId string, name string) *User {
-	return &User{connectionId: connectionId, name: name, isAlive: true, isJoined: false, gameChan: nil}
+func NewUser(name string) *User {
+	return &User{connectionId: createPlayerIdentificationString(), name: name, isAlive: true, isJoined: false, gameChan: nil}
 }
 
+func createPlayerIdentificationString() string {
+	letters := configuration.GetString("ClientIdLetters")
+	length := configuration.GetInt("ClientIdLength")
+	b := make([]byte, length)
+	var s string
+	for doesCodeExist(s) {
+		for i := range b {
+			b[i] = letters[rand.Intn(len(letters))]
+		}
+		s = string(b)
+	}
+	return s
+}
