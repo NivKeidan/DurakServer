@@ -75,3 +75,7 @@ func (this *GameStreamer) Publish(respData httpPayloadTypes.JSONResponseData) {
 	this.streamer.Publish(respData)
 
 }
+
+func (this *GameStreamer) RemoveClient(msgChan chan httpPayloadTypes.JSONResponseData) {
+	this.streamer.removeClient(msgChan)
+}

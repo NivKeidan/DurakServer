@@ -8,13 +8,15 @@ import (
 type User struct {
 	connectionId string
 	gameChan chan httpPayloadTypes.JSONResponseData
+	appChan chan httpPayloadTypes.JSONResponseData
 	name string
 	isAlive bool
 	isJoined bool
 }
 
 func NewUser(name string) *User {
-	return &User{connectionId: createPlayerIdentificationString(), name: name, isAlive: true, isJoined: false, gameChan: nil}
+	return &User{connectionId: createPlayerIdentificationString(), name: name, isAlive: true, isJoined: false,
+		gameChan:nil, appChan: nil}
 }
 
 func createPlayerIdentificationString() string {

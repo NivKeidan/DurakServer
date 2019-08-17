@@ -25,9 +25,7 @@ var appStreamer = stream.NewAppStreamer(getIsAliveResponse())
 var gameStreamer = stream.NewGameStreamer(getIsAliveResponse())
 var configuration *config.Configuration
 
-
-// External API
-
+``
 func InitServer(conf *config.Configuration) {
 	configuration = conf
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -81,6 +79,16 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 	}
 	connectionId := keys[0]
 
+	if !isGameCreated {
+		http.Error(w, createErrorJson("Game has not been created yet"), http.StatusBadRequest)
+		return
+	}
+
+	if !isGameStarted {
+		http.Error(w, createErrorJson("Game has not started yet"), http.StatusBadRequest)
+		return
+	}
+
 	user := getUserByConnectionId(connectionId)
 	if user == nil {
 		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
@@ -89,11 +97,14 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 
 	// Open stream and create connection to player
 
-	// Register client to gameStreamer
 	outgoingChannel := gameStreamer.RegisterClient(&w)
+	user.gameChan = outgoingChannel
+
 	if isGameStarted {
 		gameStreamer.Publish(getStartGameResponse())
 	}
+
+
 	gameStreamer.StreamLoop(&w, outgoingChannel, r, customizeDataPerPlayer(user.name))
 }
 
@@ -880,8 +891,7 @@ func getCustomizedPlayerCards(respData httpPayloadTypes.CustomizableJSONResponse
 }
 
 func helperFunc(originalObj httpPayloadTypes.CustomizableJSONResponseData,
-	copiedObj httpPayloadTypes.CustomizableJSONResponseData,
-	playerName string) error {
+	copiedObj httpPayloadTypes.CustomizableJSONResponseData, playerName string) error {
 
 	fakePlayerCards := getCustomizedPlayerCards(originalObj, playerName)
 	if err := deepcopy.Copy(copiedObj, originalObj); err != nil {
