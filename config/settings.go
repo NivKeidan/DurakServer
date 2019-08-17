@@ -54,6 +54,8 @@ func (this *settings) getInt(key string) int {
 	switch key {
 	case "ClientIdLength":
 		return this.clientIdLength
+	case "AliveTTL":
+		return 5
 	default:
 		return 0
 	}

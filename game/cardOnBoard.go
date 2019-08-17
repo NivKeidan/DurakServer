@@ -7,14 +7,9 @@ import (
 
 type CardOnBoard struct {
 	attackingCard *Card
+	attackingCardOwner *Player
 	defendingCard *Card
-}
-
-func NewCardOnBoard(att *Card, def *Card) *CardOnBoard {
-	return &CardOnBoard{
-		attackingCard: att,
-		defendingCard: def,
-	}
+	defendingCardOwner *Player
 }
 
 func (this *CardOnBoard) GetAttackingCard() *Card {

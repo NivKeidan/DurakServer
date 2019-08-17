@@ -78,7 +78,7 @@ func (this *Game) Attack(player *Player, card *Card) error {
 	card, err := player.GetCard(card)
 	if err != nil {return err}
 
-	this.board.AddAttackingCard(card)
+	this.board.AddAttackingCard(card, player)
 	return nil
 
 }
@@ -105,7 +105,7 @@ func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Car
 	}
 
 	// Add card to board
-	err = this.board.AddDefendingCard(attackingCard, defendingCard)
+	err = this.board.AddDefendingCard(attackingCard, defendingCard, player)
 
 	if err != nil {
 		player.TakeCards(defendingCard)  // Return card to player
@@ -220,6 +220,35 @@ func (this *Game) GetNumOfCardsLeftInDeck() int {
 
 func (this *Game) GetCardsOnBoard() []*CardOnBoard {
 	return this.board.PeekCardsOnBoard()
+}
+
+func (this *Game) HandlePlayerLeft(name string) error {
+	leavingPlayer, err := this.GetPlayerByName(name)
+	if err != nil {
+		return err
+	}
+
+	this.removePlayerFromGame(leavingPlayer)
+	if this.IsGameOver() {
+		return nil
+	}
+
+	if this.defendingPlayer == leavingPlayer {
+		this.board.ReturnCardsOnBoardToOwners()
+		this.board.EmptyBoard()
+		this.defendingPlayer = leavingPlayer.NextPlayer
+	} else {
+		if this.startingPlayer == leavingPlayer {
+			if this.board.IsEmpty() {
+				this.startingPlayer = leavingPlayer.NextPlayer
+			}
+		}
+	}
+
+	prevPlayer := this.getPreviousPlayer(leavingPlayer)
+	prevPlayer.NextPlayer = leavingPlayer.NextPlayer
+
+	return nil
 }
 
 // Internal methods
@@ -366,4 +395,15 @@ func (this *Game) getPreviousPlayer(player *Player) *Player {
 		p = p.NextPlayer
 	}
 	return p
+}
+
+func (this *Game) removePlayerFromGame(player *Player) {
+	for i, p := range this.players {
+		if p == player {
+			this.players = append(this.players[:i], this.players[i+1:]...)
+			break
+		}
+	}
+
+	this.numOfActivePlayers = this.numOfActivePlayers - 1
 }

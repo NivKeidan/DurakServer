@@ -10,7 +10,7 @@ type AppStreamer struct {
 	streamer SSEStreamer
 }
 
-func NewAppStreamer(isAliveResp httpPayloadTypes.JSONResponseData) (appStreamer *AppStreamer) {
+func NewAppStreamer(isAliveResp httpPayloadTypes.JSONResponseData, ttl int) (appStreamer *AppStreamer) {
 	appStreamer = &AppStreamer{
 		streamer: *NewSSEStreamer(),
 	}
@@ -18,7 +18,7 @@ func NewAppStreamer(isAliveResp httpPayloadTypes.JSONResponseData) (appStreamer 
 	go func() {
 		for {
 			appStreamer.Publish(isAliveResp)
-			time.Sleep(5 * time.Second)
+			time.Sleep(time.Duration(ttl / 2) * time.Second)
 		}
 	}()
 

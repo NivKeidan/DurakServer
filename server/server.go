@@ -18,16 +18,28 @@ import (
 
 var users []*User
 var currentGame *game.Game
-var isGameCreated = false
-var isGameStarted = false
+var isGameCreated bool
+var isGameStarted bool
 var numOfPlayers int
-var appStreamer = stream.NewAppStreamer(getIsAliveResponse())
-var gameStreamer = stream.NewGameStreamer(getIsAliveResponse())
+var appStreamer *stream.AppStreamer
+var gameStreamer *stream.GameStreamer
 var configuration *config.Configuration
+var aliveTTL int
+var notAliveUser chan *User
 
 func InitServer(conf *config.Configuration) {
+
 	configuration = conf
-	rand.Seed(time.Now().UTC().UnixNano())
+	aliveTTL = conf.GetInt("AliveTTL")
+	isGameStarted = false
+	isGameCreated = false
+	appStreamer = stream.NewAppStreamer(getIsAliveResponse(), aliveTTL)
+	gameStreamer = stream.NewGameStreamer(getIsAliveResponse(), aliveTTL)
+	notAliveUser = make(chan *User)
+
+	go handleDeadUsers()
+
+	rand.Seed(time.Now().UnixNano())
 	http.HandleFunc("/appStream", registerToAppStream)
 	http.HandleFunc("/gameStream", registerToGameStream)
 	http.HandleFunc("/createGame", createGame)
@@ -148,7 +160,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUser := NewUser(playerName)
+	newUser := NewUser(playerName, aliveTTL, notAliveUser)
 
 	// Join game
 
@@ -207,7 +219,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUser := NewUser(playerName)
+	newUser := NewUser(playerName, aliveTTL, notAliveUser)
 
 	if err := handlePlayerJoin(newUser); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
@@ -261,7 +273,6 @@ func leaveGame(w http.ResponseWriter, r *http.Request) {
 
 	// Remove player
 	users = removeUser(user)
-
 
 	// Un-create game if required
 	if len(users) == 0 {
@@ -325,6 +336,7 @@ func attack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
 	}
+	user.receivedAlive()
 
 	attackingPlayer, err := currentGame.GetPlayerByName(user.name)
 
@@ -401,6 +413,7 @@ func defend(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
 	}
+	user.receivedAlive()
 
 	defendingPlayer, err := currentGame.GetPlayerByName(user.name)
 
@@ -456,6 +469,8 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user.receivedAlive()
+
 	requestingPlayer, err := currentGame.GetPlayerByName(user.name)
 	if err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
@@ -507,6 +522,8 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
 	}
+
+	user.receivedAlive()
 
 	requestingPlayer, err := currentGame.GetPlayerByName(user.name)
 	if err != nil {
@@ -585,7 +602,13 @@ func alive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updateConnectionIsAlive(connId)
+	user := getUserByConnectionId(connId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
+		return
+	}
+
+	user.receivedAlive()
 
 	// Handle response
 	if err := integrateJSONResponse(createSuccessJson(), &w); err != nil {
@@ -803,10 +826,6 @@ func doesCodeExist(c string) bool {
 	return false
 }
 
-func updateConnectionIsAlive(connId string) string {
-	return connId
-}
-
 // Game Logic
 
 func unCreateGame() {
@@ -931,5 +950,31 @@ func customizeDataPerPlayer(playerName string) func(httpPayloadTypes.JSONRespons
 		default:
 			return respData, nil
 		}
+	}
+}
+
+func handleDeadUsers() {
+	for {
+		deadUser := <- notAliveUser
+		if isGameCreated {
+			if ! isGameStarted {
+				users = removeUser(deadUser)
+
+				// Un-create game if required
+				if len(users) == 0 {
+					isGameCreated = false
+				}
+
+				appStreamer.Publish(getGameStatusResponse())
+			} else {
+				playerName := deadUser.name
+				if err := currentGame.HandlePlayerLeft(playerName); err != nil {
+
+				}
+				gameStreamer.Publish(getUpdateGameResponse())
+			}
+		}
+
+
 	}
 }

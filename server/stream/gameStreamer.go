@@ -12,7 +12,7 @@ type GameStreamer struct {
 	playerName string
 }
 
-func NewGameStreamer(isAliveResp httpPayloadTypes.JSONResponseData) (gameStreamer *GameStreamer) {
+func NewGameStreamer(isAliveResp httpPayloadTypes.JSONResponseData, ttl int) (gameStreamer *GameStreamer) {
 	gameStreamer = &GameStreamer{
 		streamer: *NewSSEStreamer(),
 	}
@@ -20,7 +20,7 @@ func NewGameStreamer(isAliveResp httpPayloadTypes.JSONResponseData) (gameStreame
 	go func() {
 		for {
 			gameStreamer.Publish(isAliveResp)
-			time.Sleep(5 * time.Second)
+			time.Sleep(time.Duration(ttl / 2) * time.Second)
 		}
 	}()
 
