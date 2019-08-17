@@ -50,5 +50,9 @@ func getEventName(obj httpPayloadTypes.JSONResponseData) string {
 		return "gameupdated"
 	}
 
+	if _, ok := obj.(*httpPayloadTypes.IsAliveResponse); ok {
+		return "isAlive"
+	}
+
 	return ""
 }
