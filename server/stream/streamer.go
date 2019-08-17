@@ -33,7 +33,7 @@ func NewSSEStreamer() (streamer *SSEStreamer) {
 	return
 }
 
-func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadTypes.JSONResponseData {
+func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter) chan httpPayloadTypes.JSONResponseData {
 
 	this.addHeaders(w)
 
@@ -41,20 +41,13 @@ func (this *SSEStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request)
 	messageChan := make(chan httpPayloadTypes.JSONResponseData)
 	this.newClients <- messageChan
 
-	// Handle client-side disconnection
-	ctx := r.Context()
-
-	go func() {
-		<-ctx.Done()
-		this.removeClient(messageChan)
-	}()
-
 	return messageChan
 
 
 }
 
-func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData) {
+func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData,
+	r *http.Request) {
 
 	flusher, ok := (*w).(http.Flusher)
 
@@ -66,16 +59,22 @@ func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan htt
 	// Make sure to close connection
 	defer this.removeClient(messageChan)
 
-	for {
-		// Write to the ResponseWriter
-		// Server Sent Events compatible
-		if _, err := fmt.Fprintf(*w, "%s", convertToString(<-messageChan)); err != nil {
-			http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
-			return
-		}
+	// Handle client-side disconnection
+	ctx := r.Context()
 
-		// Flush the data immediately instead of buffering it for later.
-		flusher.Flush()
+	for {
+		select {
+			case s := <-messageChan:
+				if _, err := fmt.Fprintf(*w, "%s", convertToString(s)); err != nil {
+					http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
+					return
+				}
+
+				// Flush the data immediately instead of buffering it for later.
+				flusher.Flush()
+			case <-ctx.Done():
+				return
+		}
 	}
 
 

@@ -19,12 +19,13 @@ func NewGameStreamer() (gameStreamer *GameStreamer) {
 	return gameStreamer
 }
 
-func (this *GameStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadTypes.JSONResponseData {
-	return this.streamer.RegisterClient(w, r)
+func (this *GameStreamer) RegisterClient(w *http.ResponseWriter) chan httpPayloadTypes.JSONResponseData {
+	return this.streamer.RegisterClient(w)
 }
 
 func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData,
-	customizeDataFunc func(httpPayloadTypes.JSONResponseData) (httpPayloadTypes.JSONResponseData, error)) {
+	r *http.Request, customizeDataFunc func(httpPayloadTypes.JSONResponseData) (httpPayloadTypes.JSONResponseData, error)) {
+
 	flusher, ok := (*w).(http.Flusher)
 
 	if !ok {
@@ -35,24 +36,30 @@ func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan ht
 	// Make sure to close connection
 	defer this.streamer.removeClient(messageChan)
 
+	// Handle client-side disconnection
+	ctx := r.Context()
+
 	for {
-		// Write to the ResponseWriter
-		// Server Sent Events compatible
-		originalData := <- messageChan
-		customizedData, err := customizeDataFunc(originalData)
-		if err != nil {
-			http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
-			return
-		}
+		select {
+			case originalData := <-messageChan:
+				customizedData, err := customizeDataFunc(originalData)
+				if err != nil {
+					http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
+					return
+				}
 
-		if _, err := fmt.Fprintf(*w, "%s", convertToString(customizedData)); err != nil {
-			http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
-			return
-		}
+				if _, err := fmt.Fprintf(*w, "%s", convertToString(customizedData)); err != nil {
+					http.Error(*w, "Problem writing data to event", http.StatusInternalServerError)
+					return
+				}
 
-		// Flush the data immediately instead of buffering it for later.
-		flusher.Flush()
+				// Flush the data immediately instead of buffering it for later.
+				flusher.Flush()
+			case <-ctx.Done():
+				return
+		}
 	}
+
 }
 
 func (this *GameStreamer) Publish(respData httpPayloadTypes.JSONResponseData) {

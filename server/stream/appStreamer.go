@@ -17,18 +17,17 @@ func NewAppStreamer() (appStreamer *AppStreamer) {
 	return appStreamer
 }
 
-func (this *AppStreamer) RegisterClient(w *http.ResponseWriter, r *http.Request) chan httpPayloadTypes.JSONResponseData {
-
-	return this.streamer.RegisterClient(w, r)
+func (this *AppStreamer) RegisterClient(w *http.ResponseWriter) chan httpPayloadTypes.JSONResponseData {
+	return this.streamer.RegisterClient(w)
 }
 
-func (this *AppStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData) {
+func (this *AppStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData,
+	r *http.Request) {
 
-	this.streamer.StreamLoop(w, messageChan)
+	this.streamer.StreamLoop(w, messageChan, r)
 }
 
 func (this *AppStreamer) Publish(respData httpPayloadTypes.JSONResponseData) {
 
 	this.streamer.Publish(respData)
-
 }

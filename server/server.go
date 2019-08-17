@@ -24,7 +24,7 @@ var isGameStarted = false
 var numOfPlayers int
 var appStreamer = stream.NewAppStreamer()
 var gameStreamer = stream.NewGameStreamer()
-var clientIdentification map[string]string
+var clientIdentification map[string]string  // ConnectionString: Name
 var configuration *config.Configuration
 
 
@@ -59,12 +59,12 @@ func registerToAppStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Register client to appStreamer
-	outgoingChannel := appStreamer.RegisterClient(&w, r)
+	outgoingChannel := appStreamer.RegisterClient(&w)
 	appStreamer.Publish(getGameStatusResponse())
 	if isGameStarted {
 		appStreamer.Publish(getStartGameResponse())
 	}
-	appStreamer.StreamLoop(&w, outgoingChannel)
+	appStreamer.StreamLoop(&w, outgoingChannel, r)
 }
 
 func registerToGameStream(w http.ResponseWriter, r *http.Request) {
@@ -105,11 +105,11 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 	// Open stream and create connection to player
 
 	// Register client to gameStreamer
-	outgoingChannel := gameStreamer.RegisterClient(&w, r)
+	outgoingChannel := gameStreamer.RegisterClient(&w)
 	if isGameStarted {
 		gameStreamer.Publish(getStartGameResponse())
 	}
-	gameStreamer.StreamLoop(&w, outgoingChannel, customizeDataPerPlayer(playerName))
+	gameStreamer.StreamLoop(&w, outgoingChannel, r, customizeDataPerPlayer(playerName))
 }
 
 func createGame(w http.ResponseWriter, r *http.Request) {
@@ -564,7 +564,6 @@ func alive(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
-
 }
 
 // Validations
