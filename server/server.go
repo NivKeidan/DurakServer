@@ -470,15 +470,13 @@ func takeCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user.receivedAlive()
-
-	requestingPlayer, err := currentGame.GetPlayerByName(user.name)
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+	if !isUserPlaying(user) {
+		http.Error(w, createErrorJson("user is not a player"), http.StatusBadRequest)
 		return
 	}
 
 	// Update game
-	if err := currentGame.PickUpCards(requestingPlayer); err != nil {
+	if err := currentGame.PickUpCards(); err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
@@ -525,14 +523,13 @@ func moveCardsToBita(w http.ResponseWriter, r *http.Request) {
 
 	user.receivedAlive()
 
-	requestingPlayer, err := currentGame.GetPlayerByName(user.name)
-	if err != nil {
-		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+	if !isUserPlaying(user) {
+		http.Error(w, createErrorJson("user is not a player"), http.StatusBadRequest)
 		return
 	}
 
 	// Update game
-	if err := currentGame.MoveToBita(requestingPlayer); err != nil {
+	if err := currentGame.MoveToBita(); err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
 		return
 	}
@@ -682,6 +679,11 @@ func validatePlayerName(name string) error {
 	}
 
 	return nil
+}
+
+func isUserPlaying(user *User) bool {
+	_, err := currentGame.GetPlayerByName(user.name)
+	return err == nil
 }
 
 // SSE
