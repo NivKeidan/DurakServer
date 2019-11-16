@@ -55,7 +55,7 @@ func (this *settings) getInt(key string) int {
 	case "ClientIdLength":
 		return this.clientIdLength
 	case "AliveTTL":
-		return 5
+		return 10
 	default:
 		return 0
 	}
