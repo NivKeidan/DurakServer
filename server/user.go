@@ -2,6 +2,7 @@ package server
 
 import (
 	"DurakGo/server/httpPayloadTypes"
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -51,4 +52,23 @@ func createPlayerIdentificationString() string {
 		s = string(b)
 	}
 	return s
+}
+
+func (this *User) String() string {
+	return fmt.Sprintf("%s(%s)", this.name, this.connectionId)
+}
+
+func doesCodeExist(c string) bool {
+	// This func is called in a loop, so first call should return true
+	if c == "" {
+		return true
+	}
+
+	for _, u := range users {
+		if c == u.connectionId {
+			return true
+		}
+	}
+
+	return false
 }
