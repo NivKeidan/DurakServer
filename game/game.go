@@ -1,6 +1,7 @@
 package game
 
 import (
+	"DurakGo/output"
 	"errors"
 	"fmt"
 )
@@ -78,6 +79,8 @@ func (this *Game) Attack(player *Player, card *Card) error {
 	card, err := player.GetCard(card)
 	if err != nil {return err}
 
+	output.Spit(fmt.Sprintf("%s attacked %s with %s", player.Name, this.defendingPlayer.Name, card))
+
 	this.board.AddAttackingCard(card, player)
 	return nil
 
@@ -107,6 +110,8 @@ func (this *Game) Defend(player *Player, attackingCard *Card, defendingCard *Car
 	// Add card to board
 	err = this.board.AddDefendingCard(attackingCard, defendingCard, player)
 
+	output.Spit(fmt.Sprintf("%s defended %s with %s", player.Name, attackingCard, defendingCard))
+
 	if err != nil {
 		player.TakeCards(defendingCard)  // Return card to player
 		return err
@@ -124,6 +129,7 @@ func (this *Game) MoveToBita() error {
 	}
 	this.board.EmptyBoard()
 	this.fillUpCards()
+	output.Spit(fmt.Sprintf("Cards going to bitas"))
 	this.finalizeTurn(true)
 	return nil
 }
@@ -134,6 +140,7 @@ func (this *Game) PickUpCards() error {
 	}
 
 	cards := this.board.PeekCards()
+	output.Spit(fmt.Sprintf("%s picking up cards", this.defendingPlayer))
 	this.defendingPlayer.TakeCards(cards...)
 	this.board.EmptyBoard()
 	this.fillUpCards()
@@ -271,6 +278,7 @@ func (this *Game) dealCards() {
 func (this *Game) chooseKozer() {
 	lastCardInDeck := this.deck.PeekLastCard()
 	this.KozerCard = lastCardInDeck
+	output.Spit(fmt.Sprintf("Kozer selected: %s", this.KozerCard))
 }
 
 func (this *Game) startGame() {
@@ -366,6 +374,8 @@ func (this *Game) setUpNextTurn(wasLastTurnDefended bool) {
 	}
 
 	this.defendingPlayer = this.startingPlayer.NextPlayer
+
+	output.Spit(fmt.Sprintf("Setting up next turn: %s defending, %s starting", this.defendingPlayer.Name, this.startingPlayer.Name))
 }
 
 func (this *Game) removePlayersThatFinished() {
@@ -400,4 +410,6 @@ func (this *Game) removePlayerFromGame(player *Player) {
 	}
 
 	this.numOfActivePlayers = this.numOfActivePlayers - 1
+
+	output.Spit(fmt.Sprintf("Player %s is done!", player.Name))
 }

@@ -1,6 +1,7 @@
 package stream
 
 import (
+	"DurakGo/output"
 	"DurakGo/server/httpPayloadTypes"
 	"fmt"
 	"net/http"
@@ -78,6 +79,12 @@ func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan htt
 }
 
 func (this *SSEStreamer) listen() {
+
+	output.Spit("go routine - sse listener - start")
+	defer func() {
+		output.Spit("go routine - sse listener - ended")
+	}()
+
 	for {
 		select {
 			case s := <-this.newClients:

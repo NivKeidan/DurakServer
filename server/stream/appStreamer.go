@@ -1,6 +1,7 @@
 package stream
 
 import (
+	"DurakGo/output"
 	"DurakGo/server/httpPayloadTypes"
 	"net/http"
 	"time"
@@ -11,11 +12,16 @@ type AppStreamer struct {
 }
 
 func NewAppStreamer(isAliveResp httpPayloadTypes.JSONResponseData, ttl int) (appStreamer *AppStreamer) {
+	output.Spit("App streamer running")
 	appStreamer = &AppStreamer{
 		streamer: *NewSSEStreamer(),
 	}
 
 	go func() {
+		output.Spit("go routine - publish is alive app streamer - start")
+		defer func() {
+			output.Spit("go routine - publish is alive app streamer - ended")
+		}()
 		for {
 			appStreamer.Publish(isAliveResp)
 			time.Sleep(time.Duration(ttl / 2) * time.Second)
