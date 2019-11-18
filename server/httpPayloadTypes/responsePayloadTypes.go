@@ -53,6 +53,10 @@ type PlayerJoinedResponse struct {
 
 type IsAliveResponse struct {}
 
+type GetConnectionIdResponse struct {
+	ConnectionId string `json:"connectionId"`
+}
+
 type ErrorResponse struct {
 	Success bool `json:"success"`
 	Message string `json:"message"`

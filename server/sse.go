@@ -64,6 +64,14 @@ func getGameRestartResponse() httpPayloadTypes.JSONResponseData {
 	return resp
 }
 
+func getGetConnectionIdResponse(user *User) httpPayloadTypes.JSONResponseData {
+	resp := &httpPayloadTypes.GetConnectionIdResponse{
+		ConnectionId: user.connectionId,
+	}
+
+	return resp
+}
+
 func getPlayerJoinedResponse(user *User) httpPayloadTypes.JSONResponseData {
 	resp := &httpPayloadTypes.PlayerJoinedResponse{
 		PlayerName: user.name,

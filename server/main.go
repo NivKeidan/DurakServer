@@ -52,6 +52,7 @@ func InitServer(conf *config.Configuration) {
 	http.HandleFunc("/moveCardsToBita", moveCardsToBita)
 	http.HandleFunc("/restartGame", restartGame)
 	http.HandleFunc("/alive", alive)
+	http.HandleFunc("/connectionId", createConnectionId)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -91,12 +92,10 @@ func startGame() error {
 
 func handlePlayerJoin(user *User) error {
 	output.Spit(fmt.Sprintf("Player %s joined", user))
-	if len(users) < numOfPlayers {
-		users = append(users, user)
-	}
+	user.isJoined = true
 
 	// Start game if required
-	if len(users) == numOfPlayers {
+	if getNumOfJoinedUsers() == numOfPlayers {
 		if err := startGame(); err != nil {
 			return err
 		}
@@ -104,9 +103,19 @@ func handlePlayerJoin(user *User) error {
 	return nil
 }
 
+func getNumOfJoinedUsers() int {
+	i := 0
+	for _, u := range users {
+		if u.isJoined {
+			i++
+		}
+	}
+	return i
+}
+
 func handleCreateGame() {
 	output.Spit("Creating game")
-	users = make([]*User, 0)
+	//users = make([]*User, 0)
 	isGameCreated = true
 }
 

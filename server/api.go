@@ -20,10 +20,26 @@ func registerToAppStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output.Spit("a user registered to app stream")
+	// Extract ID and player name from URL
+	keys, ok := r.URL.Query()["id"]
+	if !ok {
+		http.Error(w, createErrorJson("could not get unique identifier from URL"), http.StatusBadRequest)
+		return
+	}
+	connectionId := keys[0]
+
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
+		return
+	}
+
+	output.Spit(fmt.Sprintf("user %s registered to app stream", user))
 
 	// Register client to appStreamer
 	outgoingChannel := appStreamer.RegisterClient(&w)
+	user.appChan = outgoingChannel
+
 	appStreamer.Publish(getGameStatusResponse())
 	if isGameStarted {
 		appStreamer.Publish(getStartGameResponse())
@@ -78,10 +94,45 @@ func registerToGameStream(w http.ResponseWriter, r *http.Request) {
 	gameStreamer.StreamLoop(&w, outgoingChannel, r, customizeDataPerPlayer(user.name))
 }
 
+func createConnectionId(w http.ResponseWriter, r *http.Request) {
+	// Validate request headers
+	allowedMethods := []string{"GET"}
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
+		return
+	}
+
+	user := NewUser(aliveTTL, notAliveUser)
+
+	users = append(users, user)
+
+
+	// Handle response
+
+	if err := integrateJSONResponse(getGetConnectionIdResponse(user), &w); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+		unCreateGame()
+		return
+	}
+}
+
 func createGame(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"POST"}
 	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
+		return
+	}
+
+
+	// Validate
+	connectionId, err := getConnectionId(r)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
 	}
 
@@ -94,6 +145,14 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	numOfPlayers = requestData.NumOfPlayers
 	playerName := requestData.PlayerName
+
+	if err := validatePlayerName(playerName); err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		unCreateGame()
+		return
+	}
+
+	user.name = playerName
 
 	// Create game
 
@@ -111,16 +170,6 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	appStreamer.Publish(getGameStatusResponse())
 
-	// Create User
-
-	if err := validatePlayerName(playerName); err != nil {
-		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
-		unCreateGame()
-		return
-	}
-
-	newUser := NewUser(playerName, aliveTTL, notAliveUser)
-
 	// Join game
 
 	if err := validateJoinGame(); err != nil {
@@ -129,7 +178,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := handlePlayerJoin(newUser); err != nil {
+	if err := handlePlayerJoin(user); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		unCreateGame()
 		return
@@ -141,7 +190,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 
 	// Handle response
 
-	if err := integrateJSONResponse(getPlayerJoinedResponse(newUser), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(user), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		unCreateGame()
 		return
@@ -153,6 +202,18 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
 	allowedMethods := []string{"POST"}
 	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
+		return
+	}
+
+	connectionId, err := getConnectionId(r)
+	if err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
 	}
 
@@ -178,9 +239,9 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUser := NewUser(playerName, aliveTTL, notAliveUser)
+	user.name = playerName
 
-	if err := handlePlayerJoin(newUser); err != nil {
+	if err := handlePlayerJoin(user); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
@@ -191,7 +252,7 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle response
-	if err := integrateJSONResponse(getPlayerJoinedResponse(newUser), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(user), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}

@@ -18,9 +18,10 @@ type User struct {
 	isJoined     bool
 }
 
-func NewUser(name string, ttl int, notAliveChan chan *User) *User {
-	u := &User{connectionId: createPlayerIdentificationString(), name: name, notAliveChan: notAliveChan,
+func NewUser(ttl int, notAliveChan chan *User) *User {
+	u := &User{connectionId: createPlayerIdentificationString(), notAliveChan: notAliveChan,
 		isJoined: false, gameChan:nil, appChan: nil}
+	output.Spit(fmt.Sprintf("New User Created: %s", u))
 	u.receivedAlive()
 	go u.checkIsAlive(ttl)
 	return u
