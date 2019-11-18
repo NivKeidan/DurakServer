@@ -1,6 +1,7 @@
 package server
 
 import (
+	"DurakGo/output"
 	"DurakGo/server/httpPayloadTypes"
 	"fmt"
 	"math/rand"
@@ -30,6 +31,10 @@ func (this *User) receivedAlive() {
 }
 
 func (this *User) checkIsAlive(ttl int) {
+	output.Spit(fmt.Sprintf("go routine - monitoring if user %s is alive - start", this))
+	defer func() {
+		output.Spit(fmt.Sprintf("go routine - monitoring if user %s is alive - ended", this))
+	}()
 	for {
 		now := time.Now().Unix()
 		if now - this.lastAlive > int64(ttl) {
@@ -55,7 +60,11 @@ func createPlayerIdentificationString() string {
 }
 
 func (this *User) String() string {
-	return fmt.Sprintf("%s(%s)", this.name, this.connectionId)
+	if this.name != "" {
+		return fmt.Sprintf("%s(%s)", this.name, this.connectionId)
+	} else {
+		return fmt.Sprintf("%s", this.connectionId)
+	}
 }
 
 func doesCodeExist(c string) bool {
