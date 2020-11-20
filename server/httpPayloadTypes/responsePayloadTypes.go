@@ -5,7 +5,6 @@ import "DurakGo/game"
 type JSONResponseData interface {}
 
 type GameStatusResponse struct {
-	IsGameRunning bool `json:"isGameRunning"`
 	IsGameCreated bool `json:"isGameCreated"`
 }
 
@@ -46,10 +45,7 @@ type GameRestartResponse struct {
 	IsDraw               bool                    `json:"isDraw"`
 }
 
-type PlayerJoinedResponse struct {
-	PlayerName string `json:"playerName"`
-	IdCode string `json:"idCode"`
-}
+type PlayerJoinedResponse struct {}
 
 type IsAliveResponse struct {}
 

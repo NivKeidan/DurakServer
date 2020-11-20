@@ -1,0 +1,81 @@
+added gameManager and userManager to manage users and games. its a mess now... continue from api call Create Game and move downwards...
+
+server: if server restarts, app stream connection is sending 400 since player name is not recognized. This should remove previous player, create new ID and approve game stream?
+server: add mechanism to prevent from just creating tons of request IDs (like alive ttl until connection to app stream?)
+client - show "server is down" on screen if app stream is not receieving data
+make debug outputs more correct (bita output, joining output)
+check that using empty name does not work
+client: add connection id once it is set to API object, so it does not need to be transeferred all the time when using it
+ADD LOCKS FOR ALL SORTS OF THINGS! Like, checking if enough player have joined to start a game!
+add lock on game joining so no more than max player num is allowed?
+check if child streamers can handle without sending funcs from child to parent
+add removal of non responding clients from app stream
+handle client afk situations
+when a player leaves the game, the losing player identification function does not work properly... decide what to do when player leaves regarding winner/loser
+add sign if server is reachable in starting screen or change screen if server is un reachable
+Add the chance for player who got disconnected to go back to game (if his turn is not yet passed)
+bug (create game for 4, join 2, leave both, crete new game for 2, join 2, errors)
+change game end screen - show winner message and play another game button
+Add piri
+integrate feature so that players can add more after player decides to take cards (first come first serve)
+go online for testing
+
+TESTING:
+-----------
+Create server streamer testings
+Create server/stream tesings - open stream, send http requests and test stream responses
+Integrate server testing for headers or bad headers
+Integrate server testing for invalid payload objects
+Test sending body for requests that require no payload
+Test missing connection id header in requests
+Test having connection id header in non wanted requests (create and join)
+Go over server coverage and complete tests
+Client - add tests
+
+SERVER:
+----------
+Integrte logging (create game files logs for AI and wathcing and  what not...)
+Remove all printings/Go over TODOs
+Do not send (exactly) same event twice to client? (except for isAlive events)
+
+CLIENT:
+-----------
+
+SECURITY:
+--------------
+
+GAME OPTIONS:
+--------------
+Integrate options object (client but mostly server)
+Limit on cards on table
+Put more than player's card limit on table and defending player can choose which ones to answer?
+starting player can choose when to let other players to start adding
+
+EXTRA FOR GAME:
+-----------------
+add restart mechanism - each player need to approve, if not, ask to wait for more player or start a new game. at the moment, restart request can be sent by anyone
+Add chat ability
+Add watch game ability
+add animations for double piri/hasake/etc...
+
+UX:
+-------
+add error displays (replace all console.log with this...)
+Add game menu change when game is over
+add waiting for players
+add card sorting in hand
+mark defending player
+mark starting player
+add API in front end when finishing game, even before turn is over
+add drag + magnet card when near by proper card + show places you can use on
+consider adding small stats table - cards left, kozer, etc...
+
+DESIGN:
+------------
+General makeover (check other durak apps)
+move kozer mark at end of deck as permanent
+
+LATER:
+-----------
+Make app for android/ios
+Write computer AI

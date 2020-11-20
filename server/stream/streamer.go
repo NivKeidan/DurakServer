@@ -1,10 +1,11 @@
 package stream
 
 import (
-	"DurakGo/output"
 	"DurakGo/server/httpPayloadTypes"
+	"DurakGo/output"
 	"fmt"
 	"net/http"
+	"reflect"
 )
 
 type SSEStreamer struct {
@@ -71,6 +72,7 @@ func (this *SSEStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan htt
 				flusher.Flush()
 
 			case <-ctx.Done():
+				output.Spit("Client closed connection to streamer")
 				return
 		}
 	}
@@ -100,6 +102,11 @@ func (this *SSEStreamer) listen() {
 			case event := <-this.Notifier:
 				// We got a new event from the outside!
 				// Send event to all connected clients
+				n := len(this.clients)
+				if n > 0 {
+					output.Spit(fmt.Sprintf("sending %s to %d clients", reflect.TypeOf(event), len(this.clients)))
+				}
+
 				for clientMessageChan := range this.clients {
 					clientMessageChan <- event
 				}

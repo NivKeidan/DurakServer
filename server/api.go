@@ -12,6 +12,26 @@ import (
 	"regexp"
 )
 
+// before game created
+
+func createConnectionId(w http.ResponseWriter, r *http.Request) {
+	// Validate request headers
+	allowedMethods := []string{"GET"}
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
+		return
+	}
+
+	user := userManager.CreateNewUser()
+
+	// Handle response
+
+	if err := integrateJSONResponse(getGetConnectionIdResponse(user), &w); err != nil {
+		http.Error(w, createErrorJson(err.Error()), 500)
+		unCreateGame()
+		return
+	}
+}
+
 func registerToAppStream(w http.ResponseWriter, r *http.Request) {
 
 	// Validate request headers
@@ -28,7 +48,7 @@ func registerToAppStream(w http.ResponseWriter, r *http.Request) {
 	}
 	connectionId := keys[0]
 
-	user := getUserByConnectionId(connectionId)
+	user := userManager.GetUserByConnectionId(connectionId)
 	if user == nil {
 		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
@@ -41,79 +61,13 @@ func registerToAppStream(w http.ResponseWriter, r *http.Request) {
 	user.appChan = outgoingChannel
 
 	appStreamer.Publish(getGameStatusResponse())
-	if isGameStarted {
-		appStreamer.Publish(getStartGameResponse())
-	}
+	//if isGameStarted {
+	//	appStreamer.Publish(getStartGameResponse())
+	//}
 	appStreamer.StreamLoop(&w, outgoingChannel, r)
 }
 
-func registerToGameStream(w http.ResponseWriter, r *http.Request) {
-	// Validate request headers
-	allowedMethods := []string{"GET"}
-	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
-		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
-		return
-	}
-
-	// Extract ID and player name from URL
-	keys, ok := r.URL.Query()["id"]
-	if !ok {
-		http.Error(w, createErrorJson("could not get unique identifier from URL"), http.StatusBadRequest)
-		return
-	}
-	connectionId := keys[0]
-
-	if !isGameCreated {
-		http.Error(w, createErrorJson("Game has not been created yet"), http.StatusBadRequest)
-		return
-	}
-
-	if !isGameStarted {
-		http.Error(w, createErrorJson("Game has not started yet"), http.StatusBadRequest)
-		return
-	}
-
-	user := getUserByConnectionId(connectionId)
-	if user == nil {
-		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
-		return
-	}
-
-	// Open stream and create connection to player
-
-	output.Spit(fmt.Sprintf("user ID %s registered to game stream", user))
-
-	outgoingChannel := gameStreamer.RegisterClient(&w)
-	user.gameChan = outgoingChannel
-
-	if isGameStarted {
-		gameStreamer.Publish(getStartGameResponse())
-	}
-
-
-	gameStreamer.StreamLoop(&w, outgoingChannel, r, customizeDataPerPlayer(user.name))
-}
-
-func createConnectionId(w http.ResponseWriter, r *http.Request) {
-	// Validate request headers
-	allowedMethods := []string{"GET"}
-	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
-		return
-	}
-
-	user := NewUser(aliveTTL, notAliveUser)
-
-	users = append(users, user)
-
-
-	// Handle response
-
-	if err := integrateJSONResponse(getGetConnectionIdResponse(user), &w); err != nil {
-		http.Error(w, createErrorJson(err.Error()), 500)
-		unCreateGame()
-		return
-	}
-}
+// before game started
 
 func createGame(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers
@@ -130,7 +84,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := getUserByConnectionId(connectionId)
+	user := userManager.GetUserByConnectionId(connectionId)
 	if user == nil {
 		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
 		return
@@ -143,7 +97,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	numOfPlayers = requestData.NumOfPlayers
+	numOfPlayers := requestData.NumOfPlayers
 	playerName := requestData.PlayerName
 
 	if err := validatePlayerName(playerName); err != nil {
@@ -152,8 +106,6 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user.name = playerName
-
 	// Create game
 
 	if err := validateCreateGame(requestData); err != nil {
@@ -161,16 +113,17 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isGameCreated {
+	newGame := gameManager.CreateNewGame(numOfPlayers)
+	if newGame == nil {
 		http.Error(w, createErrorJson("game has already been created"), http.StatusBadRequest)
 		return
 	}
 
-	handleCreateGame()
-
 	appStreamer.Publish(getGameStatusResponse())
 
 	// Join game
+
+	user.name = playerName
 
 	if err := validateJoinGame(); err != nil {
 		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
@@ -184,13 +137,13 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isGameStarted {
+	if gameManager.IsGameStarted() {
 		gameStreamer.Publish(getStartGameResponse())
 	}
 
 	// Handle response
 
-	if err := integrateJSONResponse(getPlayerJoinedResponse(user), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		unCreateGame()
 		return
@@ -252,12 +205,61 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle response
-	if err := integrateJSONResponse(getPlayerJoinedResponse(user), &w); err != nil {
+	if err := integrateJSONResponse(getPlayerJoinedResponse(), &w); err != nil {
 		http.Error(w, createErrorJson(err.Error()), 500)
 		return
 	}
 
 }
+
+func registerToGameStream(w http.ResponseWriter, r *http.Request) {
+	// Validate request headers
+	allowedMethods := []string{"GET"}
+	if err := validateRequestMethod(&w, r, allowedMethods); err != nil {
+		http.Error(w, createErrorJson(err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Extract ID and player name from URL
+	keys, ok := r.URL.Query()["id"]
+	if !ok {
+		http.Error(w, createErrorJson("could not get unique identifier from URL"), http.StatusBadRequest)
+		return
+	}
+	connectionId := keys[0]
+
+	if !isGameCreated {
+		http.Error(w, createErrorJson("Game has not been created yet"), http.StatusBadRequest)
+		return
+	}
+
+	if !isGameStarted {
+		http.Error(w, createErrorJson("Game has not started yet"), http.StatusBadRequest)
+		return
+	}
+
+	user := getUserByConnectionId(connectionId)
+	if user == nil {
+		http.Error(w, createErrorJson("Could not find player"), http.StatusBadRequest)
+		return
+	}
+
+	// Open stream and create connection to player
+
+	output.Spit(fmt.Sprintf("user ID %s registered to game stream", user))
+
+	outgoingChannel := gameStreamer.RegisterClient(&w)
+	user.gameChan = outgoingChannel
+
+	if isGameStarted {
+		gameStreamer.Publish(getStartGameResponse())
+	}
+
+
+	gameStreamer.StreamLoop(&w, outgoingChannel, r, customizeDataPerPlayer(user.name))
+}
+
+// while game is running
 
 func leaveGame(w http.ResponseWriter, r *http.Request) {
 	// Validate request method
@@ -604,6 +606,8 @@ func restartGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// general
 
 func alive(w http.ResponseWriter, r *http.Request) {
 	// Validate request headers

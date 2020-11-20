@@ -15,44 +15,36 @@ import (
 	"time"
 )
 
-var users []*User
-var currentGame *game.Game
-var isGameCreated bool
-var isGameStarted bool
-var numOfPlayers int
+
+var gameManager *GameManager
+var userManager *UserManager
 var appStreamer *stream.AppStreamer
-var gameStreamer *stream.GameStreamer
 var configuration *config.Configuration
-var aliveTTL int
-var notAliveUser chan *User
 
 func InitServer(conf *config.Configuration) {
 
 	output.Spit("Server initialized!")
-
-	configuration = conf
-	aliveTTL = conf.GetInt("AliveTTL")
-	isGameStarted = false
-	isGameCreated = false
+	aliveTTL := conf.GetInt("AliveTTL")
+	gameManager = NewGameManager()
+	userManager = NewUserManager()
 	appStreamer = stream.NewAppStreamer(getIsAliveResponse(), aliveTTL)
-	gameStreamer = stream.NewGameStreamer(getIsAliveResponse(), aliveTTL)
-	notAliveUser = make(chan *User)
 
 	go handleDeadUsers()
 
 	rand.Seed(time.Now().UnixNano())
+	http.HandleFunc("/connectionId", createConnectionId)
 	http.HandleFunc("/appStream", registerToAppStream)
-	http.HandleFunc("/gameStream", registerToGameStream)
+	http.HandleFunc("/alive", alive)
 	http.HandleFunc("/createGame", createGame)
 	http.HandleFunc("/joinGame", joinGame)
+	http.HandleFunc("/gameStream", registerToGameStream)
 	http.HandleFunc("/leaveGame", leaveGame)
 	http.HandleFunc("/attack", attack)
 	http.HandleFunc("/defend", defend)
 	http.HandleFunc("/takeCards", takeCards)
 	http.HandleFunc("/moveCardsToBita", moveCardsToBita)
 	http.HandleFunc("/restartGame", restartGame)
-	http.HandleFunc("/alive", alive)
-	http.HandleFunc("/connectionId", createConnectionId)
+
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -61,7 +53,8 @@ func InitServer(conf *config.Configuration) {
 
 func unCreateGame() {
 	output.Spit("Uncreating game")
-	users = make([]*User, 0)
+	gameManager.UncreateGame()
+	//users = make([]*User, 0)
 	isGameCreated = false
 	if isGameStarted {
 		currentGame = nil
@@ -91,7 +84,7 @@ func startGame() error {
 }
 
 func handlePlayerJoin(user *User) error {
-	output.Spit(fmt.Sprintf("Player %s joined", user))
+	output.Spit(fmt.Sprintf("User %s generated Player %s and joined to game", user.connectionId, user.name))
 	user.isJoined = true
 
 	// Start game if required
@@ -111,21 +104,6 @@ func getNumOfJoinedUsers() int {
 		}
 	}
 	return i
-}
-
-func handleCreateGame() {
-	output.Spit("Creating game")
-	//users = make([]*User, 0)
-	isGameCreated = true
-}
-
-func getUserByConnectionId(connId string) *User {
-	for _, u := range users {
-		if u.connectionId == connId {
-			return u
-		}
-	}
-	return nil
 }
 
 func removeUser(u *User) []*User {
@@ -206,7 +184,11 @@ func handleDeadUsers() {
 
 	for {
 		deadUser := <-notAliveUser
+		output.Spit(fmt.Sprintf("User %s is dead. Removing from app stream", deadUser))
+		appStreamer.RemoveClient(deadUser.appChan)
 		if isGameCreated {
+			output.Spit(fmt.Sprintf("User %s is dead. Removing from game stream", deadUser))
+			appStreamer.RemoveClient(deadUser.gameChan)
 			if ! isGameStarted {
 
 				users = removeUser(deadUser)
@@ -220,7 +202,7 @@ func handleDeadUsers() {
 			} else {
 				playerName := deadUser.name
 				if err := currentGame.HandlePlayerLeft(playerName); err != nil {
-
+					// TODO What is missing here???
 				}
 				gameStreamer.Publish(getUpdateGameResponse())
 			}

@@ -42,8 +42,7 @@ func getStartGameResponse() httpPayloadTypes.JSONResponseData {
 
 func getGameStatusResponse() httpPayloadTypes.JSONResponseData {
 	resp := &httpPayloadTypes.GameStatusResponse{
-		IsGameRunning: isGameStarted,
-		IsGameCreated: isGameCreated,
+		IsGameCreated: gameManager.IsGameCreated(),
 	}
 
 	return resp
@@ -72,11 +71,8 @@ func getGetConnectionIdResponse(user *User) httpPayloadTypes.JSONResponseData {
 	return resp
 }
 
-func getPlayerJoinedResponse(user *User) httpPayloadTypes.JSONResponseData {
-	resp := &httpPayloadTypes.PlayerJoinedResponse{
-		PlayerName: user.name,
-		IdCode: user.connectionId,
-	}
+func getPlayerJoinedResponse() httpPayloadTypes.JSONResponseData {
+	resp := &httpPayloadTypes.PlayerJoinedResponse{}
 
 	return resp
 }

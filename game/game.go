@@ -411,5 +411,5 @@ func (this *Game) removePlayerFromGame(player *Player) {
 
 	this.numOfActivePlayers = this.numOfActivePlayers - 1
 
-	output.Spit(fmt.Sprintf("Player %s is done!", player.Name))
+	output.Spit(fmt.Sprintf("Player %s is removed from game", player.Name))
 }

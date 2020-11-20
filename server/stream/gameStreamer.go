@@ -9,14 +9,13 @@ import (
 )
 
 type GameStreamer struct {
-	streamer   SSEStreamer
-	playerName string
+	SSEStreamer
 }
 
 func NewGameStreamer(isAliveResp httpPayloadTypes.JSONResponseData, ttl int) (gameStreamer *GameStreamer) {
 	output.Spit("Game streamer running")
 	gameStreamer = &GameStreamer{
-		streamer: *NewSSEStreamer(),
+		*NewSSEStreamer(),
 	}
 
 	go func() {
@@ -33,10 +32,6 @@ func NewGameStreamer(isAliveResp httpPayloadTypes.JSONResponseData, ttl int) (ga
 	return gameStreamer
 }
 
-func (this *GameStreamer) RegisterClient(w *http.ResponseWriter) chan httpPayloadTypes.JSONResponseData {
-	return this.streamer.RegisterClient(w)
-}
-
 func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan httpPayloadTypes.JSONResponseData,
 	r *http.Request, customizeDataFunc func(httpPayloadTypes.JSONResponseData) (httpPayloadTypes.JSONResponseData, error)) {
 
@@ -48,7 +43,7 @@ func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan ht
 	}
 
 	// Make sure to close connection
-	defer this.streamer.removeClient(messageChan)
+	defer this.removeClient(messageChan)
 
 	// Handle client-side disconnection
 	ctx := r.Context()
@@ -70,18 +65,13 @@ func (this *GameStreamer) StreamLoop(w *http.ResponseWriter, messageChan chan ht
 				// Flush the data immediately instead of buffering it for later.
 				flusher.Flush()
 			case <-ctx.Done():
+				output.Spit("client closed connection to game streamer")
 				return
 		}
 	}
 
 }
 
-func (this *GameStreamer) Publish(respData httpPayloadTypes.JSONResponseData) {
-
-	this.streamer.Publish(respData)
-
-}
-
 func (this *GameStreamer) RemoveClient(msgChan chan httpPayloadTypes.JSONResponseData) {
-	this.streamer.removeClient(msgChan)
+	this.removeClient(msgChan)
 }

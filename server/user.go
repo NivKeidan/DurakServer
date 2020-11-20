@@ -4,9 +4,10 @@ import (
 	"DurakGo/output"
 	"DurakGo/server/httpPayloadTypes"
 	"fmt"
-	"math/rand"
 	"time"
 )
+
+
 
 type User struct {
 	connectionId string
@@ -16,15 +17,6 @@ type User struct {
 	lastAlive    int64
 	notAliveChan chan *User
 	isJoined     bool
-}
-
-func NewUser(ttl int, notAliveChan chan *User) *User {
-	u := &User{connectionId: createPlayerIdentificationString(), notAliveChan: notAliveChan,
-		isJoined: false, gameChan:nil, appChan: nil}
-	output.Spit(fmt.Sprintf("New User Created: %s", u))
-	u.receivedAlive()
-	go u.checkIsAlive(ttl)
-	return u
 }
 
 func (this *User) receivedAlive() {
@@ -46,19 +38,7 @@ func (this *User) checkIsAlive(ttl int) {
 	}
 }
 
-func createPlayerIdentificationString() string {
-	letters := configuration.GetString("ClientIdLetters")
-	length := configuration.GetInt("ClientIdLength")
-	b := make([]byte, length)
-	var s string
-	for doesCodeExist(s) {
-		for i := range b {
-			b[i] = letters[rand.Intn(len(letters))]
-		}
-		s = string(b)
-	}
-	return s
-}
+
 
 func (this *User) String() string {
 	if this.name != "" {
@@ -68,17 +48,5 @@ func (this *User) String() string {
 	}
 }
 
-func doesCodeExist(c string) bool {
-	// This func is called in a loop, so first call should return true
-	if c == "" {
-		return true
-	}
 
-	for _, u := range users {
-		if c == u.connectionId {
-			return true
-		}
-	}
 
-	return false
-}
